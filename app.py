@@ -6,13 +6,45 @@ app = Flask(__name__)
 # 📦 Conexión a la base de datos
 def get_db_connection():
     conn = psycopg2.connect(
-        dbname='presentacion1',
+        dbname='presentacion1',  # aqui va el nombre de la base de datso creada en postgrest
         user='postgres',
         password='basededatos',
         host='localhost',
         port='5432'
     )
     return conn
+
+#creacion de la base de datos en caso de que no exista
+def create_table_if_not_exists():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    # despues lo arreglamos con los campos que se necesiten para el proyecto
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS carreras (
+            id SERIAL PRIMARY KEY,
+            nombre VARCHAR(50) UNIQUE NOT NULL
+        )
+    """)
+    
+    for carrera in ['mecanica', 'quimica', 'sistemas', 'electrica']:
+        cur.execute("INSERT INTO carreras (nombre) VALUES (%s) ON CONFLICT (nombre) DO NOTHING;", (carrera,))
+    
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS tablaprueba1 (
+            id SERIAL PRIMARY KEY,
+            nombre VARCHAR(100) NOT NULL,
+            edad INTEGER NOT NULL,
+            carrera_id INTEGER REFERENCES carreras(id) ON DELETE CASCADE
+        )
+    """)
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+
+create_table_if_not_exists()
+
+
 
 # 🎯 Rutas de la API (vacías, listas para implementar)
 
