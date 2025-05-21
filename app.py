@@ -1,82 +1,62 @@
 from flask import Flask, request, jsonify
-import psycopg2
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-# 📦 Conexión a la base de datos
-def get_db_connection():
-    conn = psycopg2.connect(
-        dbname='presentacion1',  # aqui va el nombre de la base de datso creada en postgrest
-        user='postgres',
-        password='basededatos',
-        host='localhost',
-        port='5432'
-    )
-    return conn
+# Configuración de la base de datos con SQLAlchemy
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:hola123@localhost:5432/Redema'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-#creacion de la base de datos en caso de que no exista
-def create_table_if_not_exists():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    # despues lo arreglamos con los campos que se necesiten para el proyecto
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS carreras (
-            id SERIAL PRIMARY KEY,
-            nombre VARCHAR(50) UNIQUE NOT NULL
-        )
-    """)
-    
-    for carrera in ['mecanica', 'quimica', 'sistemas', 'electrica']:
-        cur.execute("INSERT INTO carreras (nombre) VALUES (%s) ON CONFLICT (nombre) DO NOTHING;", (carrera,))
-    
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS tablaprueba1 (
-            id SERIAL PRIMARY KEY,
-            nombre VARCHAR(100) NOT NULL,
-            edad INTEGER NOT NULL,
-            carrera_id INTEGER REFERENCES carreras(id) ON DELETE CASCADE
-        )
-    """)
-    
-    conn.commit()
-    cur.close()
-    conn.close()
+db = SQLAlchemy(app)
 
-create_table_if_not_exists()
+# Modelo de ejemplo
+class Persona(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(50), nullable=False)
+    edad = db.Column(db.Integer, nullable=False)
 
+# Crear las tablas si no existen
+with app.app_context():
+    db.create_all()
 
-
-# 🎯 Rutas de la API (vacías, listas para implementar)
+@app.route('/')
+def home():
+    return "Base de datos conectada y tabla 'persona' lista."
 
 @app.route('/create', methods=['POST'])
 def create_record():
-    # Aquí iría la lógica para crear un registro
-    return jsonify({'message': 'Función crear registro (a implementar).'}), 200
+    data = request.json
+    nueva_persona = Persona(nombre=data['nombre'], edad=data['edad'])
+    db.session.add(nueva_persona)
+    db.session.commit()
+    return jsonify({'message': 'Persona creada exitosamente.'}), 201
 
 @app.route('/read', methods=['GET'])
 def read_records():
-    # Aquí iría la lógica para leer todos los registros
-    return jsonify({'message': 'Función leer registros (a implementar).'}), 200
+    personas = Persona.query.all()
+    resultado = [{'id': p.id, 'nombre': p.nombre, 'edad': p.edad} for p in personas]
+    return jsonify(resultado), 200
 
 @app.route('/read/<int:record_id>', methods=['GET'])
 def read_record(record_id):
-    # Aquí iría la lógica para leer un registro específico
-    return jsonify({'message': f'Función leer registro {record_id} (a implementar).'}), 200
+    persona = Persona.query.get_or_404(record_id)
+    return jsonify({'id': persona.id, 'nombre': persona.nombre, 'edad': persona.edad}), 200
 
 @app.route('/update/<int:record_id>', methods=['PUT'])
 def update_record(record_id):
-    # Aquí iría la lógica para actualizar un registro
-    return jsonify({'message': f'Función actualizar registro {record_id} (a implementar).'}), 200
+    persona = Persona.query.get_or_404(record_id)
+    data = request.json
+    persona.nombre = data.get('nombre', persona.nombre)
+    persona.edad = data.get('edad', persona.edad)
+    db.session.commit()
+    return jsonify({'message': 'Persona actualizada exitosamente.'}), 200
 
 @app.route('/delete/<int:record_id>', methods=['DELETE'])
 def delete_record(record_id):
-    # Aquí iría la lógica para eliminar un registro
-    return jsonify({'message': f'Función eliminar registro {record_id} (a implementar).'}), 200
-
-@app.route('/test_transactions', methods=['POST'])
-def test_transactions():
-    # Aquí iría la lógica para probar transacciones
-    return jsonify({'message': 'Función test de transacciones (a implementar).'}), 200
+    persona = Persona.query.get_or_404(record_id)
+    db.session.delete(persona)
+    db.session.commit()
+    return jsonify({'message': 'Persona eliminada exitosamente.'}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
