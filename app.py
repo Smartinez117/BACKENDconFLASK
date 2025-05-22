@@ -1,13 +1,73 @@
+import firebase_admin
+import psycopg2
+from firebase_admin import credentials, auth as firebase_auth
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
+from functools import wraps
+from datetime import datetime
 
 app = Flask(__name__)
 
+# Inicializar Firebase
+cred = credentials.Certificate("firebase/firebase-credentials.json")
+firebase_admin.initialize_app(cred)
+
 # Configuración de la base de datos con SQLAlchemy
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:hola123@localhost:5432/Redema'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:matias@localhost:5432/Redema' #Recordar escribir postgres:contraseña@localhost>5432/Redema ,donde la contraseñe es la que determinaron al descargar PGadmin
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+def get_connection():
+    return psycopg2.connect(
+        host="localhost",
+        dbname="Redema",
+        user="postgres",
+        password="matias"
+    )
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    id_token = data.get("token")
+
+    try:
+        # Decodificar token
+        decoded_token = firebase_auth.verify_id_token(id_token)
+        firebase_uid = decoded_token['uid']
+        email = decoded_token['email']
+        nombre = decoded_token.get('name', '')
+        foto_perfil = decoded_token.get('picture', '')
+
+        # Conectarse a PostgreSQL
+        conn = get_connection()
+        cur = conn.cursor()
+
+        # Verificar si el usuario ya existe
+        cur.execute("SELECT * FROM usuario WHERE firebase_uid = %s", (firebase_uid,))
+        usuario = cur.fetchone()
+
+        if not usuario:
+            # Insertar nuevo usuario
+            cur.execute("""
+                INSERT INTO usuario (nombre, email, foto_de_perfil, firebase_uid, fecha_registro)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (nombre, email, foto_perfil, firebase_uid, datetime.utcnow()))
+
+            conn.commit()
+
+        cur.close()
+        conn.close()
+
+        return jsonify({"message": "Usuario autenticado correctamente"}), 200
+
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"error": "Token inválido o error interno"}), 401
+
+
+CORS(app)
+
 
 # Modelo de ejemplo
 class Persona(db.Model):
@@ -29,7 +89,7 @@ def create_record():
     nueva_persona = Persona(nombre=data['nombre'], edad=data['edad'])
     db.session.add(nueva_persona)
     db.session.commit()
-    return jsonify({'message': 'Persona creada.'}), 201
+    return jsonify({'message': 'Persona creada correctamente.'}), 201
 
 @app.route('/read', methods=['GET'])
 def read_records():
