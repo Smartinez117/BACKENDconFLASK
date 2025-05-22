@@ -29,7 +29,7 @@ def create_record():
     nueva_persona = Persona(nombre=data['nombre'], edad=data['edad'])
     db.session.add(nueva_persona)
     db.session.commit()
-    return jsonify({'message': 'Persona creada exitosamente.'}), 201
+    return jsonify({'message': 'Persona creada.'}), 201
 
 @app.route('/read', methods=['GET'])
 def read_records():
