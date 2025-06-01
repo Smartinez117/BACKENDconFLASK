@@ -14,13 +14,13 @@ cred = credentials.Certificate("firebase/firebase-credentials.json")
 firebase_admin.initialize_app(cred)
 
 # Configuración de la base de datos con SQLAlchemy
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:redeMaster12312341234554377@redema-1.czgus8igm8d1.us-east-2.rds.amazonaws.com:5432/postgres' #Recordar escribir postgres:contraseña@localhost>5432/Redema ,donde la contraseñe es la que determinaron al descargar PGadmin
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:redeMaster12312341234554377@redema-1sao.c98g40e0qtw0.sa-east-1.rds.amazonaws.com:5432/postgres' #Recordar escribir postgres:contraseña@localhost>5432/Redema ,donde la contraseñe es la que determinaron al descargar PGadmin
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 def get_connection():
     return psycopg2.connect(
-        host="redema-1.czgus8igm8d1.us-east-2.rds.amazonaws.com",
+        host="redema-1sao.c98g40e0qtw0.sa-east-1.rds.amazonaws.com",
         dbname="postgres",
         user="postgres",
         password="redeMaster12312341234554377",
