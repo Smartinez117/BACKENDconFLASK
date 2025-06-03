@@ -14,19 +14,23 @@ cred = credentials.Certificate("firebase/firebase-credentials.json")
 firebase_admin.initialize_app(cred)
 
 # Configuración de la base de datos con SQLAlchemy
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:redeMaster12312341234554377@redema-1sao.c98g40e0qtw0.sa-east-1.rds.amazonaws.com:5432/postgres' #Recordar escribir postgres:contraseña@localhost>5432/Redema ,donde la contraseñe es la que determinaron al descargar PGadmin
+# 🔄 Configuración de SQLAlchemy con Supabase (Session Pooler)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres.rloagvhioijwvqgknuex:redeMaster12312341234554377@aws-0-us-east-2.pooler.supabase.com:5432/postgres'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+# 🔌 Función de conexión directa con psycopg2 (opcional)
 def get_connection():
     return psycopg2.connect(
-        host="redema-1sao.c98g40e0qtw0.sa-east-1.rds.amazonaws.com",
+        host="aws-0-us-east-2.pooler.supabase.com",
         dbname="postgres",
-        user="postgres",
+        user="postgres.rloagvhioijwvqgknuex",
         password="redeMaster12312341234554377",
-        port = 5432
+        port=5432
     )
-
+    
+    
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
