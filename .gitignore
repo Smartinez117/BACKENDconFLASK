@@ -7,3 +7,4 @@ venv/
 # Ignorar archivos de sistema
 __pycache__/
 *.pyc
+firebase/firebase-credentials.json
