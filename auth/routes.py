@@ -1,4 +1,12 @@
-@app.route('/api/login', methods=['POST'])
+from flask import Blueprint, request, jsonify
+from core.models import db, Usuario
+from firebase_admin import auth as firebase_auth
+from datetime import datetime
+
+auth_bp = Blueprint('auth', __name__)
+
+
+@auth_bp.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
     id_token = data.get("token")
