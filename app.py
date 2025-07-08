@@ -9,6 +9,7 @@ from datetime import datetime
 from flask_migrate import Migrate
 from core.models import db, Usuario
 from auth.routes import auth_bp
+from publicaciones.routes import publicaciones_bp
 
 app = Flask(__name__)
 
@@ -28,7 +29,7 @@ CORS(app)
 
 
 app.register_blueprint(auth_bp)
-
+app.register_blueprint(publicaciones_bp)
 
 
 
