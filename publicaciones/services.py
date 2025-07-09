@@ -51,55 +51,6 @@ def crear_publicacion(data):
     
 
 
-def obtener_todas_las_publicaciones():
-    publicaciones = Publicacion.query.all()
-    resultado = []
-
-    for pub in publicaciones:
-        imagenes = Imagen.query.filter_by(id_publicacion=pub.id).all()
-        urls_imagenes = [img.url for img in imagenes]
-
-        resultado.append({
-            'id': pub.id,
-            'id_usuario': pub.id_usuario,
-            'id_locacion': pub.id_locacion,
-            'titulo': pub.titulo,
-            'descripcion': pub.descripcion,
-            'etiquetas': pub.etiquetas,
-            'categoria': pub.categoria,
-            'fecha_creacion': pub.fecha_creacion.isoformat() if pub.fecha_creacion else None,
-            'fecha_modificacion': pub.fecha_modificacion.isoformat() if pub.fecha_modificacion else None,
-            'coordenadas': pub.coordenadas,
-            'imagenes': urls_imagenes
-        })
-
-    return resultado
-
-def obtener_publicaciones_por_categoria(categoria):
-    publicaciones = Publicacion.query.filter_by(categoria=categoria).all()
-    resultado = []
-
-    for pub in publicaciones:
-        imagenes = Imagen.query.filter_by(id_publicacion=pub.id).all()
-        urls_imagenes = [img.url for img in imagenes]
-
-        resultado.append({
-            'id': pub.id,
-            'id_usuario': pub.id_usuario,
-            'id_locacion': pub.id_locacion,
-            'titulo': pub.titulo,
-            'descripcion': pub.descripcion,
-            'etiquetas': pub.etiquetas,
-            'categoria': pub.categoria,
-            'fecha_creacion': pub.fecha_creacion.isoformat() if pub.fecha_creacion else None,
-            'fecha_modificacion': pub.fecha_modificacion.isoformat() if pub.fecha_modificacion else None,
-            'coordenadas': pub.coordenadas,
-            'imagenes': urls_imagenes
-        })
-
-    return resultado
-
-
 def obtener_publicacion_por_id(id_publicacion):
     pub = Publicacion.query.get(id_publicacion)
 
@@ -124,21 +75,56 @@ def obtener_publicacion_por_id(id_publicacion):
     }
     
 
-def obtener_publicaciones_por_etiquetas(lista_etiquetas):
-    if not lista_etiquetas:
-        return []
 
-    publicaciones_filtradas = Publicacion.query
+def obtener_publicaciones_filtradas(
+    lat=None, lon=None, radio_km=None,
+    categoria=None, etiquetas=None,
+    fecha_min=None, fecha_max=None,
+    id_usuario=None
+):
+    publicaciones = db.session.query(Publicacion)
 
-    for etiqueta in lista_etiquetas:
-        publicaciones_filtradas = publicaciones_filtradas.filter(
-            Publicacion.etiquetas.like(f"%{etiqueta}%")
-        )
+    if lat is not None and lon is not None and radio_km is not None:
+        publicaciones = publicaciones.filter(Publicacion.coordenadas.isnot(None)).all()
+    else:
+        publicaciones = publicaciones.all()
 
-    publicaciones = publicaciones_filtradas.all()
     resultado = []
 
     for pub in publicaciones:
+        # 🌍 Filtrado por geolocalización
+        if lat is not None and lon is not None and radio_km is not None:
+            lat_pub, lon_pub = pub.coordenadas
+            if calcular_distancia_km(lat, lon, lat_pub, lon_pub) > radio_km:
+                continue
+
+        # 📂 Filtrado por categoría
+        if categoria and pub.categoria.lower() != categoria.lower():
+            continue
+
+        # 🔖 Filtrado por etiquetas
+        if etiquetas:
+            etiquetas_pub = pub.etiquetas or ""
+            etiquetas_pub_normalizadas = normalizar_texto(etiquetas_pub)
+            if not all(et in etiquetas_pub_normalizadas for et in etiquetas):
+                continue
+
+        # 📅 Filtrado por fechas
+        if fecha_min:
+            fecha_min_dt = datetime.strptime(fecha_min, '%Y-%m-%d')
+            if not pub.fecha_creacion or pub.fecha_creacion < fecha_min_dt:
+                continue
+
+        if fecha_max:
+            fecha_max_dt = datetime.strptime(fecha_max, '%Y-%m-%d')
+            if not pub.fecha_creacion or pub.fecha_creacion > fecha_max_dt:
+                continue
+
+        # 🙋‍♂️ Filtrado por usuario
+        if id_usuario and str(pub.id_usuario) != str(id_usuario):
+            continue
+
+        # 🖼️ Imágenes
         imagenes = Imagen.query.filter_by(id_publicacion=pub.id).all()
         urls_imagenes = [img.url for img in imagenes]
 
@@ -157,57 +143,6 @@ def obtener_publicaciones_por_etiquetas(lista_etiquetas):
         })
 
     return resultado
-
-def obtener_publicaciones_cercanas(lat, lon, radio_km, categoria=None, etiquetas=[]):
-    publicaciones = db.session.query(Publicacion).filter(Publicacion.coordenadas.isnot(None)).all()
-
-    resultado = []
-
-    for pub in publicaciones:
-        lat_pub, lon_pub = pub.coordenadas
-        if calcular_distancia_km(lat, lon, lat_pub, lon_pub) <= radio_km:
-
-            if categoria and pub.categoria.lower() != categoria.lower():
-                continue
-
-            if etiquetas:
-                etiquetas_pub = pub.etiquetas or ""
-                etiquetas_normalizadas = etiquetas_pub.lower()
-                if not all(et in etiquetas_normalizadas for et in etiquetas):
-                    continue
-
-            imagenes = Imagen.query.filter_by(id_publicacion=pub.id).all()
-            urls_imagenes = [img.url for img in imagenes]
-
-            resultado.append({
-                'id': pub.id,
-                'id_usuario': pub.id_usuario,
-                'id_locacion': pub.id_locacion,
-                'titulo': pub.titulo,
-                'descripcion': pub.descripcion,
-                'etiquetas': pub.etiquetas,
-                'categoria': pub.categoria,
-                'fecha_creacion': pub.fecha_creacion.isoformat() if pub.fecha_creacion else None,
-                'fecha_modificacion': pub.fecha_modificacion.isoformat() if pub.fecha_modificacion else None,
-                'coordenadas': pub.coordenadas,
-                'imagenes': urls_imagenes
-            })
-
-    return resultado
-
-
-def calcular_distancia_km(lat1, lon1, lat2, lon2):
-    # Fórmula de Haversine
-    R = 6371  # Radio de la Tierra en km
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon2 - lon1)
-    a = (
-        (pow((radians(lat2 - lat1)) / 2, 2)) +
-        (pow((radians(lon2 - lon1)) / 2, 2)) *
-        (pow((radians(lat1)), 2))
-    )
-    c = 2 * R * (a ** 0.5)
-    return c
 
 
     
@@ -259,6 +194,8 @@ def eliminar_publicacion(id_publicacion):
     
     
     
+    #Extras
+    
 def normalizar_texto(texto):
     if not texto:
         return ''
@@ -266,3 +203,17 @@ def normalizar_texto(texto):
     texto = unicodedata.normalize('NFD', texto)
     texto = texto.encode('ascii', 'ignore').decode('utf-8')
     return texto.lower().strip()
+
+
+def calcular_distancia_km(lat1, lon1, lat2, lon2):
+    # Fórmula de Haversine
+    R = 6371  # Radio de la Tierra en km
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = (
+        (pow((radians(lat2 - lat1)) / 2, 2)) +
+        (pow((radians(lon2 - lon1)) / 2, 2)) *
+        (pow((radians(lat1)), 2))
+    )
+    c = 2 * R * (a ** 0.5)
+    return c

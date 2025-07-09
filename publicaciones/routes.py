@@ -1,10 +1,7 @@
 from flask import Blueprint, request, jsonify
 from publicaciones.services import (
-    obtener_todas_las_publicaciones,
-    obtener_publicaciones_por_categoria,
     obtener_publicacion_por_id,
-    obtener_publicaciones_por_etiquetas,
-    obtener_publicaciones_cercanas,
+    obtener_publicaciones_filtradas,
     crear_publicacion,
     actualizar_publicacion,
     eliminar_publicacion,
@@ -20,16 +17,6 @@ def crear():
 
 
 
-@publicaciones_bp.route('/publicaciones', methods=['GET'])
-def get_all_publicaciones():
-    publicaciones = obtener_todas_las_publicaciones()
-    return jsonify(publicaciones), 200
-
-# Obtener publicaciones por categoría
-@publicaciones_bp.route('/publicaciones/categoria/<string:categoria>', methods=['GET'])
-def get_publicaciones_por_categoria(categoria):
-    publicaciones = obtener_publicaciones_por_categoria(categoria)
-    return jsonify(publicaciones), 200
 
 # Obtener una publicación por ID
 @publicaciones_bp.route('/publicaciones/<int:id_publicacion>', methods=['GET'])
@@ -37,41 +24,48 @@ def get_publicacion(id_publicacion):
     publicacion = obtener_publicacion_por_id(id_publicacion)
     return jsonify(publicacion), 200
 
-# Obtener una publicación por etiquetas (Filtrado) GET /publicaciones/etiquetas?etiquetas=perro,negro,callejero
-@publicaciones_bp.route('/publicaciones/etiquetas', methods=['GET'])
-def get_publicaciones_por_etiquetas():
-    etiquetas_param = request.args.get('etiquetas')  # ej: "perro,negro,callejero,Campana,Buenos Aires"
-    
-
-    if not etiquetas_param:
-        return jsonify({"error": "Se requiere al menos una etiqueta"}), 400
-
-    etiquetas = [normalizar_texto(tag) for tag in etiquetas_param.split(',') if tag.strip()]
-
-    publicaciones = obtener_publicaciones_por_etiquetas(etiquetas)
-    return jsonify(publicaciones), 200
 
 
-#GET /publicaciones/cercanas?lat=-34.60&lon=-58.38&radio=10&categoria=perdido&etiquetas=marron,grande
-@publicaciones_bp.route('/publicaciones/cercanas', methods=['GET'])
-def get_publicaciones_cercanas():
+
+#GET /publicaciones/filtrar?lat=-34.60&lon=-58.38&radio=10&categoria=perdido&etiquetas=marron,grande&fecha_min=2025-07-01&fecha_max=2025-07-08&id_usuario=1
+@publicaciones_bp.route('/publicaciones/filtrar', methods=['GET'])
+def get_publicaciones_filtradas():
     try:
-        lat = float(request.args.get('lat'))
-        lon = float(request.args.get('lon'))
-        radio = float(request.args.get('radio', 5))  # km por defecto
+        lat = request.args.get('lat')
+        lon = request.args.get('lon')
+        radio = request.args.get('radio')
+
+        # Solo convertir si están presentes
+        lat = float(lat) if lat else None
+        lon = float(lon) if lon else None
+        radio = float(radio) if radio else None        
+
         categoria = request.args.get('categoria')
-        etiquetas = request.args.get('etiquetas')  # coma separadas
+        etiquetas = request.args.get('etiquetas')
+        fecha_min = request.args.get('fecha_min')  # formato: YYYY-MM-DD
+        fecha_max = request.args.get('fecha_max')  # formato: YYYY-MM-DD
+        id_usuario = request.args.get('id_usuario')
 
-        lista_etiquetas_raw = etiquetas.lower().split(",") if etiquetas else []
-        lista_etiquetas_normalizadas = [normalizar_texto(tag) for tag in lista_etiquetas_raw]
+        etiquetas_lista = []
+        if etiquetas:
+            etiquetas_raw = etiquetas.lower().split(",")
+            etiquetas_lista = [normalizar_texto(e) for e in etiquetas_raw]
 
-        publicaciones = obtener_publicaciones_cercanas(lat, lon, radio, categoria, lista_etiquetas_normalizadas)
+        publicaciones = obtener_publicaciones_filtradas(
+            lat=lat,
+            lon=lon,
+            radio_km=radio,
+            categoria=categoria,
+            etiquetas=etiquetas_lista,
+            fecha_min=fecha_min,
+            fecha_max=fecha_max,
+            id_usuario=id_usuario
+        )
 
         return jsonify(publicaciones), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
+        return jsonify({'error': str(e)}), 400
 
 
 # PATCH
