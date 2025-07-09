@@ -4,6 +4,7 @@ from publicaciones.services import (
     obtener_publicaciones_por_categoria,
     obtener_publicacion_por_id,
     obtener_publicaciones_por_etiquetas,
+    obtener_publicaciones_cercanas,
     crear_publicacion,
     actualizar_publicacion,
     eliminar_publicacion,
@@ -49,6 +50,28 @@ def get_publicaciones_por_etiquetas():
 
     publicaciones = obtener_publicaciones_por_etiquetas(etiquetas)
     return jsonify(publicaciones), 200
+
+
+#GET /publicaciones/cercanas?lat=-34.60&lon=-58.38&radio=10&categoria=perdido&etiquetas=marron,grande
+@publicaciones_bp.route('/publicaciones/cercanas', methods=['GET'])
+def get_publicaciones_cercanas():
+    try:
+        lat = float(request.args.get('lat'))
+        lon = float(request.args.get('lon'))
+        radio = float(request.args.get('radio', 5))  # km por defecto
+        categoria = request.args.get('categoria')
+        etiquetas = request.args.get('etiquetas')  # coma separadas
+
+        lista_etiquetas_raw = etiquetas.lower().split(",") if etiquetas else []
+        lista_etiquetas_normalizadas = [normalizar_texto(tag) for tag in lista_etiquetas_raw]
+
+        publicaciones = obtener_publicaciones_cercanas(lat, lon, radio, categoria, lista_etiquetas_normalizadas)
+
+        return jsonify(publicaciones), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 
 
 # PATCH

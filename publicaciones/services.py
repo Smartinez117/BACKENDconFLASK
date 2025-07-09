@@ -4,6 +4,9 @@ from datetime import datetime
 import unicodedata
 from core.models import db, Publicacion, Imagen
 from datetime import datetime
+from math import radians
+from sqlalchemy import text
+
 
 def crear_publicacion(data):
     
@@ -154,6 +157,57 @@ def obtener_publicaciones_por_etiquetas(lista_etiquetas):
         })
 
     return resultado
+
+def obtener_publicaciones_cercanas(lat, lon, radio_km, categoria=None, etiquetas=[]):
+    publicaciones = db.session.query(Publicacion).filter(Publicacion.coordenadas.isnot(None)).all()
+
+    resultado = []
+
+    for pub in publicaciones:
+        lat_pub, lon_pub = pub.coordenadas
+        if calcular_distancia_km(lat, lon, lat_pub, lon_pub) <= radio_km:
+
+            if categoria and pub.categoria.lower() != categoria.lower():
+                continue
+
+            if etiquetas:
+                etiquetas_pub = pub.etiquetas or ""
+                etiquetas_normalizadas = etiquetas_pub.lower()
+                if not all(et in etiquetas_normalizadas for et in etiquetas):
+                    continue
+
+            imagenes = Imagen.query.filter_by(id_publicacion=pub.id).all()
+            urls_imagenes = [img.url for img in imagenes]
+
+            resultado.append({
+                'id': pub.id,
+                'id_usuario': pub.id_usuario,
+                'id_locacion': pub.id_locacion,
+                'titulo': pub.titulo,
+                'descripcion': pub.descripcion,
+                'etiquetas': pub.etiquetas,
+                'categoria': pub.categoria,
+                'fecha_creacion': pub.fecha_creacion.isoformat() if pub.fecha_creacion else None,
+                'fecha_modificacion': pub.fecha_modificacion.isoformat() if pub.fecha_modificacion else None,
+                'coordenadas': pub.coordenadas,
+                'imagenes': urls_imagenes
+            })
+
+    return resultado
+
+
+def calcular_distancia_km(lat1, lon1, lat2, lon2):
+    # Fórmula de Haversine
+    R = 6371  # Radio de la Tierra en km
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = (
+        (pow((radians(lat2 - lat1)) / 2, 2)) +
+        (pow((radians(lon2 - lon1)) / 2, 2)) *
+        (pow((radians(lat1)), 2))
+    )
+    c = 2 * R * (a ** 0.5)
+    return c
 
 
     
