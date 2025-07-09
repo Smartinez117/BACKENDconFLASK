@@ -76,55 +76,50 @@ def obtener_publicacion_por_id(id_publicacion):
     
 
 
-def obtener_publicaciones_filtradas(
-    lat=None, lon=None, radio_km=None,
-    categoria=None, etiquetas=None,
-    fecha_min=None, fecha_max=None,
-    id_usuario=None
-):
-    publicaciones = db.session.query(Publicacion)
+def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria=None, etiquetas=None, fecha_min=None, fecha_max=None, id_usuario=None):
+    query = db.session.query(Publicacion)
+
+    # Aplicar filtros SQL directamente
+    if categoria:
+        query = query.filter(db.func.lower(Publicacion.categoria) == categoria.lower())
+
+    if id_usuario:
+        query = query.filter(Publicacion.id_usuario == id_usuario)
+
+    if fecha_min:
+        fecha_min_dt = datetime.strptime(fecha_min, '%Y-%m-%d')
+        query = query.filter(Publicacion.fecha_creacion >= fecha_min_dt)
+
+    if fecha_max:
+        fecha_max_dt = datetime.strptime(fecha_max, '%Y-%m-%d')
+        query = query.filter(Publicacion.fecha_creacion <= fecha_max_dt)
+
+    if etiquetas:
+        etiquetas_normalizadas = [normalizar_texto(e) for e in etiquetas if normalizar_texto(e).strip()]
+        if etiquetas_normalizadas:
+            for etiqueta in etiquetas_normalizadas:
+                query = query.filter(
+                    db.func.lower(Publicacion.etiquetas).like(f"%{etiqueta}%")
+                )
+        else:
+            # Si todas las etiquetas eran inválidas o vacías, no devolver nada
+            return []
 
     if lat is not None and lon is not None and radio_km is not None:
-        publicaciones = publicaciones.filter(Publicacion.coordenadas.isnot(None)).all()
-    else:
-        publicaciones = publicaciones.all()
+        query = query.filter(Publicacion.coordenadas.isnot(None))
 
+    publicaciones = query.all()
+
+    # Filtro por distancia (fuera de SQL)
+    if lat is not None and lon is not None and radio_km is not None:
+        publicaciones = [
+            pub for pub in publicaciones
+            if calcular_distancia_km(lat, lon, *pub.coordenadas) <= radio_km
+        ]
+
+    # Armar resultado
     resultado = []
-
     for pub in publicaciones:
-        # 🌍 Filtrado por geolocalización
-        if lat is not None and lon is not None and radio_km is not None:
-            lat_pub, lon_pub = pub.coordenadas
-            if calcular_distancia_km(lat, lon, lat_pub, lon_pub) > radio_km:
-                continue
-
-        # 📂 Filtrado por categoría
-        if categoria and pub.categoria.lower() != categoria.lower():
-            continue
-
-        # 🔖 Filtrado por etiquetas
-        if etiquetas:
-            etiquetas_pub = pub.etiquetas or ""
-            etiquetas_pub_normalizadas = normalizar_texto(etiquetas_pub)
-            if not all(et in etiquetas_pub_normalizadas for et in etiquetas):
-                continue
-
-        # 📅 Filtrado por fechas
-        if fecha_min:
-            fecha_min_dt = datetime.strptime(fecha_min, '%Y-%m-%d')
-            if not pub.fecha_creacion or pub.fecha_creacion < fecha_min_dt:
-                continue
-
-        if fecha_max:
-            fecha_max_dt = datetime.strptime(fecha_max, '%Y-%m-%d')
-            if not pub.fecha_creacion or pub.fecha_creacion > fecha_max_dt:
-                continue
-
-        # 🙋‍♂️ Filtrado por usuario
-        if id_usuario and str(pub.id_usuario) != str(id_usuario):
-            continue
-
-        # 🖼️ Imágenes
         imagenes = Imagen.query.filter_by(id_publicacion=pub.id).all()
         urls_imagenes = [img.url for img in imagenes]
 
