@@ -10,7 +10,7 @@ from flask_migrate import Migrate
 from core.models import db, Usuario
 from auth.routes import auth_bp
 from publicaciones.routes import publicaciones_bp
-
+from usuarios.routes import usuarios_bp
 app = Flask(__name__)
 
 # Inicializar Firebase
@@ -30,7 +30,7 @@ CORS(app)
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(publicaciones_bp)
-
+app.register_blueprint(usuarios_bp)
 
 
 

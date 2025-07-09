@@ -51,8 +51,8 @@ def get_publicaciones_por_etiquetas():
     return jsonify(publicaciones), 200
 
 
-# PUT
-@publicaciones_bp.route('/publicaciones/<int:id_publicacion>', methods=['PUT'])
+# PATCH
+@publicaciones_bp.route('/publicaciones/<int:id_publicacion>', methods=['PATCH'])
 def actualizar(id_publicacion):
     data = request.get_json()
     try:
