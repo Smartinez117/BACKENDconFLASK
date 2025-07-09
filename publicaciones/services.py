@@ -1,18 +1,22 @@
 from flask import jsonify
 from core.models import db, Publicacion, Imagen
 from datetime import datetime
-
+import unicodedata
 from core.models import db, Publicacion, Imagen
 from datetime import datetime
 
 def crear_publicacion(data):
+    
+    etiquetas_crudas = data.get('etiquetas', '')
+    etiquetas_normalizadas = normalizar_texto(etiquetas_crudas)
+    
     try:
         nueva_publicacion = Publicacion(
             id_usuario=data.get('id_usuario'),
             id_locacion=data.get('id_locacion'),
             titulo=data.get('titulo'),
             categoria=data.get('categoria'),
-            etiquetas=data.get('etiquetas'),
+            etiquetas= etiquetas_normalizadas,
             descripcion=data.get('descripcion'),
             fecha_creacion=datetime.utcnow(),
             fecha_modificacion=datetime.utcnow(),
@@ -116,18 +120,56 @@ def obtener_publicacion_por_id(id_publicacion):
             'imagenes': urls_imagenes
     }
     
-    
+
+def obtener_publicaciones_por_etiquetas(lista_etiquetas):
+    if not lista_etiquetas:
+        return []
+
+    publicaciones_filtradas = Publicacion.query
+
+    for etiqueta in lista_etiquetas:
+        publicaciones_filtradas = publicaciones_filtradas.filter(
+            Publicacion.etiquetas.like(f"%{etiqueta}%")
+        )
+
+    publicaciones = publicaciones_filtradas.all()
+    resultado = []
+
+    for pub in publicaciones:
+        imagenes = Imagen.query.filter_by(id_publicacion=pub.id).all()
+        urls_imagenes = [img.url for img in imagenes]
+
+        resultado.append({
+            'id': pub.id,
+            'id_usuario': pub.id_usuario,
+            'id_locacion': pub.id_locacion,
+            'titulo': pub.titulo,
+            'descripcion': pub.descripcion,
+            'etiquetas': pub.etiquetas,
+            'categoria': pub.categoria,
+            'fecha_creacion': pub.fecha_creacion.isoformat() if pub.fecha_creacion else None,
+            'fecha_modificacion': pub.fecha_modificacion.isoformat() if pub.fecha_modificacion else None,
+            'coordenadas': pub.coordenadas,
+            'imagenes': urls_imagenes
+        })
+
+    return resultado
+
+
     
 def actualizar_publicacion(id_publicacion, data):
     publicacion = Publicacion.query.get(id_publicacion)
 
     if not publicacion:
         raise Exception("Publicación no encontrada")
+    
+    etiquetas_crudas = data.get('etiquetas', '')
+    etiquetas_normalizadas = normalizar_texto(etiquetas_crudas)
 
     # Actualizar campos
     publicacion.titulo = data.get('titulo', publicacion.titulo)
     publicacion.descripcion = data.get('descripcion', publicacion.descripcion)
-    publicacion.etiquetas = data.get('etiquetas', publicacion.etiquetas)
+    publicacion.etiquetas = etiquetas_normalizadas
     publicacion.categoria = data.get('categoria', publicacion.categoria)
     publicacion.id_locacion = data.get('id_locacion', publicacion.id_locacion)
     publicacion.coordenadas = data.get('coordenadas', publicacion.coordenadas)
@@ -160,3 +202,13 @@ def eliminar_publicacion(id_publicacion):
     # Eliminar la publicación
     db.session.delete(publicacion)
     db.session.commit()
+    
+    
+    
+def normalizar_texto(texto):
+    if not texto:
+        return ''
+    # Elimina tildes y convierte a minúsculas
+    texto = unicodedata.normalize('NFD', texto)
+    texto = texto.encode('ascii', 'ignore').decode('utf-8')
+    return texto.lower().strip()

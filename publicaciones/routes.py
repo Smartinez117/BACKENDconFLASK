@@ -3,9 +3,11 @@ from publicaciones.services import (
     obtener_todas_las_publicaciones,
     obtener_publicaciones_por_categoria,
     obtener_publicacion_por_id,
+    obtener_publicaciones_por_etiquetas,
     crear_publicacion,
     actualizar_publicacion,
-    eliminar_publicacion
+    eliminar_publicacion,
+    normalizar_texto
 )
 publicaciones_bp = Blueprint("publicaciones", __name__)
 
@@ -34,6 +36,20 @@ def get_publicacion(id_publicacion):
     publicacion = obtener_publicacion_por_id(id_publicacion)
     return jsonify(publicacion), 200
 
+# Obtener una publicación por etiquetas (Filtrado) GET /publicaciones/etiquetas?etiquetas=perro,negro,callejero
+@publicaciones_bp.route('/publicaciones/etiquetas', methods=['GET'])
+def get_publicaciones_por_etiquetas():
+    etiquetas_param = request.args.get('etiquetas')  # ej: "perro,negro,callejero,Campana,Buenos Aires"
+    
+
+    if not etiquetas_param:
+        return jsonify({"error": "Se requiere al menos una etiqueta"}), 400
+
+    etiquetas = [normalizar_texto(tag) for tag in etiquetas_param.split(',') if tag.strip()]
+
+    publicaciones = obtener_publicaciones_por_etiquetas(etiquetas)
+    return jsonify(publicaciones), 200
+
 
 # PUT
 @publicaciones_bp.route('/publicaciones/<int:id_publicacion>', methods=['PUT'])
@@ -55,3 +71,7 @@ def borrar_publicacion(id_publicacion):
         return jsonify({'mensaje': 'Publicación eliminada correctamente'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 400
+
+
+
+
