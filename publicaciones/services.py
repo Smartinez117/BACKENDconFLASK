@@ -1,4 +1,6 @@
 from flask import jsonify
+from comentarios.services import eliminar_comentario
+from imagenes.services import eliminar_imagen
 from core.models import Comentario, db, Publicacion, Imagen
 from datetime import datetime
 import unicodedata
@@ -180,11 +182,15 @@ def eliminar_publicacion(id_publicacion):
     if not publicacion:
         raise Exception("Publicación no encontrada")
 
-    # Eliminar imágenes asociadas
-    Imagen.query.filter_by(id_publicacion=publicacion.id).delete()
-    
-    # Eliminar comentarios asociados
-    Comentario.query.filter_by(id_publicacion=publicacion.id).delete()
+    # Eliminar comentarios desde su función
+    comentarios = Comentario.query.filter_by(id_publicacion=publicacion.id).all()
+    for c in comentarios:
+        eliminar_comentario(c.id)
+
+    # Eliminar imágenes desde su función
+    imagenes = Imagen.query.filter_by(id_publicacion=publicacion.id).all()
+    for img in imagenes:
+        eliminar_imagen(img.id)
     
     # Eliminar la publicación
     db.session.delete(publicacion)
