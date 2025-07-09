@@ -1,5 +1,5 @@
 from flask import jsonify
-from core.models import db, Publicacion, Imagen
+from core.models import Comentario, db, Publicacion, Imagen
 from datetime import datetime
 import unicodedata
 from core.models import db, Publicacion, Imagen
@@ -182,7 +182,10 @@ def eliminar_publicacion(id_publicacion):
 
     # Eliminar imágenes asociadas
     Imagen.query.filter_by(id_publicacion=publicacion.id).delete()
-
+    
+    # Eliminar comentarios asociados
+    Comentario.query.filter_by(id_publicacion=publicacion.id).delete()
+    
     # Eliminar la publicación
     db.session.delete(publicacion)
     db.session.commit()
