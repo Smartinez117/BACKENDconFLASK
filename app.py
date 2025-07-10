@@ -14,6 +14,7 @@ from usuarios.routes import usuarios_bp
 from comentarios.routes import comentarios_bp
 from imagenes.routes import imagenes_bp
 from notificaciones.routes import notificaciones_bp
+from reportes.routes import reportes_bp
 
 app = Flask(__name__)
 
@@ -38,6 +39,8 @@ app.register_blueprint(usuarios_bp)
 app.register_blueprint(comentarios_bp)
 app.register_blueprint(imagenes_bp)
 app.register_blueprint(notificaciones_bp)
+app.register_blueprint(reportes_bp)
+
 
 # MAIN
 
