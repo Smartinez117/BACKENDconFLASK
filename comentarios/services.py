@@ -1,21 +1,40 @@
 from datetime import datetime
-from core.models import db, Comentario
+from core.models import db, Comentario, Publicacion, Notificacion,Usuario
+from notificaciones.services import crear_notificacion
+
 
 def crear_comentario(data):
     try:
         nuevo = Comentario(
             id_publicacion=data['id_publicacion'],
             id_usuario=data['id_usuario'],
-            id_anterior=data.get('id_anterior'),  # puede ser None
+            id_anterior=data.get('id_anterior'),
             descripcion=data['descripcion'],
-            fecha_creacion=datetime.utcnow()
+            fecha_creacion=datetime.utcnow(),
+            fecha_modificacion=datetime.utcnow()
         )
         db.session.add(nuevo)
+
+        # Obtener datos necesarios
+        publicacion = Publicacion.query.get(data['id_publicacion'])
+        usuario_comentador = Usuario.query.get(data['id_usuario'])
+
+        if publicacion and usuario_comentador and int(publicacion.id_usuario) != int(usuario_comentador.id):
+            # Usar la función reutilizable para crear la notificación
+            crear_notificacion({
+                "id_usuario": publicacion.id_usuario,
+                "titulo": f"{usuario_comentador.nombre} comentó tu publicación",
+                "descripcion": f"Comentó en: '{publicacion.titulo}'",
+                "tipo": "comentario"
+            })
+
         db.session.commit()
         return {"mensaje": "Comentario creado", "id": nuevo.id}, 201
+
     except Exception as e:
         db.session.rollback()
         return {"error": str(e)}, 400
+
 
 
 def obtener_comentarios_por_publicacion(id):
