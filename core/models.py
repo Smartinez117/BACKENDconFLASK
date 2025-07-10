@@ -1,3 +1,4 @@
+import datetime
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -61,3 +62,24 @@ class Localidad(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.Text)
     id_departamento = db.Column(db.Text)
+    
+    
+class Notificacion(db.Model):
+    __tablename__ = 'notificaciones'
+    id = db.Column(db.Integer, primary_key=True)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    titulo = db.Column(db.Text)
+    descripcion = db.Column(db.Text)
+    tipo = db.Column(db.Text)
+    fecha_creacion = db.Column(db.DateTime, nullable=False)
+    leido = db.Column(db.Boolean, default=False)
+    
+    
+class Reporte(db.Model):
+    __tablename__ = 'reportes'
+    id = db.Column(db.Integer, primary_key=True)
+    id_publicacion = db.Column(db.Integer, db.ForeignKey('publicaciones.id'), nullable=False)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    descripcion = db.Column(db.Text)
+    tipo = db.Column(db.Text)
+    fecha_creacion = db.Column(db.DateTime, nullable=False)
