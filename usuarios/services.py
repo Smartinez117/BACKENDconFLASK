@@ -17,3 +17,10 @@ def actualizar_datos_usuario(id_usuario,data):
 
     db.session.commit()
        
+def get_usuario (id_usuario):
+    usuario = Usuario.query.get(id_usuario)
+
+    if not usuario:
+        return jsonify({'error': 'Usuario no encontrado'}), 404
+
+    return usuario
