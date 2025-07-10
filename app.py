@@ -16,6 +16,7 @@ from imagenes.routes import imagenes_bp
 from notificaciones.routes import notificaciones_bp
 from reportes.routes import reportes_bp
 from qr.routes import qr_bp
+from pdf.routes import pdf_bp
 
 app = Flask(__name__)
 
@@ -42,7 +43,7 @@ app.register_blueprint(imagenes_bp)
 app.register_blueprint(notificaciones_bp)
 app.register_blueprint(reportes_bp)
 app.register_blueprint(qr_bp)
-
+app.register_blueprint(pdf_bp)
 # MAIN
 
 
