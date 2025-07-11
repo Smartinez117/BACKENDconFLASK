@@ -52,3 +52,15 @@ def filtrar_usuarios():
         return jsonify(usuarios_filtrados), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+    
+@usuarios_bp.route('/usuario/<int:id_usuario>', methods=['DELETE'])
+def eliminar_usuario(id_usuario):
+    usuario = Usuario.query.get(id_usuario)
+
+    if not usuario:
+        return jsonify({'error': 'Usuario no encontrado'}), 404
+
+    db.session.delete(usuario)
+    db.session.commit()
+
+    return jsonify({'mensaje': f'Usuario {usuario.nombre} eliminado correctamente'}), 200
