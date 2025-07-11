@@ -1,7 +1,7 @@
 from flask import jsonify
 from comentarios.services import eliminar_comentario
 from imagenes.services import eliminar_imagen
-from core.models import Comentario, db, Publicacion, Imagen
+from core.models import Comentario, Reporte, db, Publicacion, Imagen
 from datetime import datetime
 import unicodedata
 from core.models import db, Publicacion, Imagen
@@ -176,11 +176,20 @@ def actualizar_publicacion(id_publicacion, data):
     
     
     
-def eliminar_publicacion(id_publicacion):
+def eliminar_publicacion(id_publicacion, usuario):
     publicacion = Publicacion.query.get(id_publicacion)
 
     if not publicacion:
         raise Exception("Publicación no encontrada")
+
+    # Verificar que el usuario sea dueño o admin
+    if publicacion.id_usuario != usuario.id and usuario.rol != 'admin':
+        raise Exception("No tiene permiso para eliminar esta publicación")
+    
+    # Eliminar reportes asociados
+    reportes = Reporte.query.filter_by(id_publicacion=publicacion.id).all()
+    for reporte in reportes:
+        db.session.delete(reporte)
 
     # Eliminar comentarios desde su función
     comentarios = Comentario.query.filter_by(id_publicacion=publicacion.id).all()
@@ -191,10 +200,10 @@ def eliminar_publicacion(id_publicacion):
     imagenes = Imagen.query.filter_by(id_publicacion=publicacion.id).all()
     for img in imagenes:
         eliminar_imagen(img.id)
-    
-    # Eliminar la publicación
+
     db.session.delete(publicacion)
     db.session.commit()
+
     
     
     

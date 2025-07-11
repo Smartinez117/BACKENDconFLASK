@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from auth.services import require_auth 
 from publicaciones.services import (
     obtener_publicacion_por_id,
     obtener_publicaciones_filtradas,
@@ -81,10 +82,12 @@ def actualizar(id_publicacion):
 
 
 #DELETE
+# asegurate de importar el decorador
 @publicaciones_bp.route('/publicaciones/<int:id_publicacion>', methods=['DELETE'])
-def borrar_publicacion(id_publicacion):
+@require_auth
+def borrar_publicacion(usuario, id_publicacion):  # usuario autenticado como primer parámetro
     try:
-        eliminar_publicacion(id_publicacion)
+        eliminar_publicacion(id_publicacion, usuario)  # pasamos el usuario
         return jsonify({'mensaje': 'Publicación eliminada correctamente'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 400
