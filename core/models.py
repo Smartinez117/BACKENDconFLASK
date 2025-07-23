@@ -1,5 +1,6 @@
 import datetime
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Numeric
 
 db = SQLAlchemy()
 
@@ -21,7 +22,7 @@ class Publicacion(db.Model):
     __tablename__ = 'publicaciones'
     id = db.Column(db.Integer, primary_key=True)
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
-    id_locacion = db.Column(db.Integer, db.ForeignKey('localidad.id'))
+    id_locacion = db.Column(db.BigInteger, db.ForeignKey('localidades.id'))
     titulo = db.Column(db.Text)
     categoria = db.Column(db.Text, nullable=False)
     etiquetas = db.Column(db.Text)
@@ -47,21 +48,28 @@ class Imagen(db.Model):
     url = db.Column(db.Text)
 
 class Provincia(db.Model):
-    __tablename__ = 'provincia'
+    __tablename__ = 'provincias'
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.Text)
+    latitud = db.Column(Numeric(15, 10))
+    longitud = db.Column(Numeric(15, 10))
 
-class PartidoDepartamento(db.Model):
-    __tablename__ = 'partido_departamento'
+class Departamento(db.Model):
+    __tablename__ = 'departamentos'
     id = db.Column(db.Integer, primary_key=True)
-    id_provincia = db.Column(db.Integer, db.ForeignKey('provincia.id'))
+    id_provincia = db.Column(db.Integer, db.ForeignKey('provincias.id'))
     nombre = db.Column(db.Text)
+    latitud = db.Column(Numeric(15, 10))
+    longitud = db.Column(Numeric(15, 10))
 
 class Localidad(db.Model):
-    __tablename__ = 'localidad'
-    id = db.Column(db.Integer, primary_key=True)
+    __tablename__ = 'localidades'
+    id = db.Column(db.BigInteger, primary_key=True)
     nombre = db.Column(db.Text)
-    id_departamento = db.Column(db.Text)
+    id_departamento = db.Column(db.Integer, db.ForeignKey('departamentos.id'))
+    latitud = db.Column(Numeric(15, 10))
+    longitud = db.Column(Numeric(15, 10))
+
     
     
 class Notificacion(db.Model):

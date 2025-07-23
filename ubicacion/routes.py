@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from core.models import db, Provincia, PartidoDepartamento, Localidad  # Asegurate de importar tus modelos correctamente
+from core.models import db, Provincia, Departamento, Localidad
 
 ubicacion_bp = Blueprint('ubicacion', __name__, url_prefix='/api/ubicacion')
 
@@ -16,7 +16,8 @@ def obtener_departamentos():
     if not provincia_id:
         return jsonify({"error": "Falta el parámetro provincia_id"}), 400
     
-    departamentos = PartidoDepartamento.query.filter_by(id_provincia=provincia_id).order_by(PartidoDepartamento.nombre).all()
+    departamentos = Departamento.query.filter_by(id_provincia=provincia_id).order_by(Departamento.nombre).all()
+
     return jsonify([{'id': d.id, 'nombre': d.nombre} for d in departamentos])
 
 
@@ -27,4 +28,11 @@ def obtener_localidades():
         return jsonify({"error": "Falta el parámetro departamento_id"}), 400
     
     localidades = Localidad.query.filter_by(id_departamento=departamento_id).order_by(Localidad.nombre).all()
-    return jsonify([{'id': l.id, 'nombre': l.nombre} for l in localidades])
+    return jsonify([
+        {
+            'id': l.id,
+            'nombre': l.nombre,
+            'latitud': l.latitud,
+            'longitud': l.longitud
+        } for l in localidades
+    ])
