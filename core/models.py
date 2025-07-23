@@ -18,6 +18,21 @@ class Usuario(db.Model):
     descripcion = db.Column(db.Text)
     publicaciones = db.relationship('Publicacion', backref='usuario', lazy=True)
 
+
+class Etiqueta(db.Model):
+    __tablename__ = 'etiquetas'
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(50), unique=True, nullable=False)
+
+    publicaciones = db.relationship('Publicacion', secondary='publicacion_etiqueta', back_populates='etiquetas')
+
+
+class PublicacionEtiqueta(db.Model):
+    __tablename__ = 'publicacion_etiqueta'
+    id_publicacion = db.Column(db.Integer, db.ForeignKey('publicaciones.id'), primary_key=True)
+    id_etiqueta = db.Column(db.Integer, db.ForeignKey('etiquetas.id'), primary_key=True)
+
+
 class Publicacion(db.Model):
     __tablename__ = 'publicaciones'
     id = db.Column(db.Integer, primary_key=True)
@@ -25,11 +40,12 @@ class Publicacion(db.Model):
     id_locacion = db.Column(db.BigInteger, db.ForeignKey('localidades.id'))
     titulo = db.Column(db.Text)
     categoria = db.Column(db.Text, nullable=False)
-    etiquetas = db.Column(db.Text)
     descripcion = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime)
     fecha_modificacion = db.Column(db.DateTime)
     coordenadas = db.Column(db.ARRAY(db.Float))
+
+    etiquetas = db.relationship('Etiqueta', secondary='publicacion_etiqueta', back_populates='publicaciones')
 
 class Comentario(db.Model):
     __tablename__ = 'comentarios'

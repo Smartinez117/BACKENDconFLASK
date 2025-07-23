@@ -18,6 +18,8 @@ from reportes.routes import reportes_bp
 from qr.routes import qr_bp
 from pdf.routes import pdf_bp
 from ubicacion.routes import ubicacion_bp
+from etiquetas.routes import etiquetas_bp
+
 
 
 
@@ -48,6 +50,7 @@ app.register_blueprint(reportes_bp)
 app.register_blueprint(qr_bp)
 app.register_blueprint(pdf_bp)
 app.register_blueprint(ubicacion_bp)
+app.register_blueprint(etiquetas_bp, url_prefix='/api/etiquetas')
 # MAIN
 
 
