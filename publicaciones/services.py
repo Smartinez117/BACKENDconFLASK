@@ -1,37 +1,30 @@
 from flask import jsonify
 from comentarios.services import eliminar_comentario
 from imagenes.services import eliminar_imagen
-from core.models import Comentario, db, Publicacion, Imagen
-from datetime import datetime
-import unicodedata
-from core.models import db, Publicacion, Imagen
+from core.models import Comentario, db, Publicacion, Imagen, Etiqueta, PublicacionEtiqueta
 from datetime import datetime
 from math import radians
-from sqlalchemy import text
+from sqlalchemy import text, func
+import unicodedata
 
 
 def crear_publicacion(data):
-    
-    etiquetas_crudas = data.get('etiquetas', '')
-    etiquetas_normalizadas = normalizar_texto(etiquetas_crudas)
-    
     try:
         nueva_publicacion = Publicacion(
             id_usuario=data.get('id_usuario'),
             id_locacion=data.get('id_locacion'),
             titulo=data.get('titulo'),
             categoria=data.get('categoria'),
-            etiquetas= etiquetas_normalizadas,
             descripcion=data.get('descripcion'),
             fecha_creacion=datetime.utcnow(),
             fecha_modificacion=datetime.utcnow(),
-            coordenadas=data.get('coordenadas')  # esto debe ser una lista [lat, long]
+            coordenadas=data.get('coordenadas')  # lista [lat, lon]
         )
 
         db.session.add(nueva_publicacion)
-        db.session.flush()  # obtener el ID generado sin hacer commit todavía
+        db.session.flush()  # obtener ID generado
 
-        # Agregar imágenes si existen
+        # Imágenes
         imagenes = data.get('imagenes', [])
         for url in imagenes:
             nueva_imagen = Imagen(
@@ -39,6 +32,18 @@ def crear_publicacion(data):
                 url=url
             )
             db.session.add(nueva_imagen)
+
+        # Etiquetas
+        etiquetas = data.get('etiquetas', [])
+        for etiqueta_texto in etiquetas:
+            etiqueta_normalizada = normalizar_texto(etiqueta_texto)
+            etiqueta = Etiqueta.query.filter(func.lower(Etiqueta.nombre) == etiqueta_normalizada).first()
+            if not etiqueta:
+                etiqueta = Etiqueta(nombre=etiqueta_normalizada)
+                db.session.add(etiqueta)
+                db.session.flush()  # obtener id
+
+            nueva_publicacion.etiquetas.append(etiqueta)
 
         db.session.commit()
 
@@ -50,7 +55,6 @@ def crear_publicacion(data):
     except Exception as e:
         db.session.rollback()
         return {"error": str(e)}, 400
-    
 
 
 def obtener_publicacion_por_id(id_publicacion):
@@ -61,29 +65,28 @@ def obtener_publicacion_por_id(id_publicacion):
 
     imagenes = Imagen.query.filter_by(id_publicacion=pub.id).all()
     urls_imagenes = [img.url for img in imagenes]
+    etiquetas = [et.nombre for et in pub.etiquetas]
 
     return {
         'id': pub.id,
-            'id_usuario': pub.id_usuario,
-            'id_locacion': pub.id_locacion,
-            'titulo': pub.titulo,
-            'descripcion': pub.descripcion,
-            'etiquetas': pub.etiquetas,
-            'categoria': pub.categoria,
-            'fecha_creacion': pub.fecha_creacion.isoformat() if pub.fecha_creacion else None,
-            'fecha_modificacion': pub.fecha_modificacion.isoformat() if pub.fecha_modificacion else None,
-            'coordenadas': pub.coordenadas,
-            'imagenes': urls_imagenes
+        'id_usuario': pub.id_usuario,
+        'id_locacion': pub.id_locacion,
+        'titulo': pub.titulo,
+        'descripcion': pub.descripcion,
+        'categoria': pub.categoria,
+        'etiquetas': etiquetas,
+        'fecha_creacion': pub.fecha_creacion.isoformat() if pub.fecha_creacion else None,
+        'fecha_modificacion': pub.fecha_modificacion.isoformat() if pub.fecha_modificacion else None,
+        'coordenadas': pub.coordenadas,
+        'imagenes': urls_imagenes
     }
-    
 
 
 def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria=None, etiquetas=None, fecha_min=None, fecha_max=None, id_usuario=None):
     query = db.session.query(Publicacion)
 
-    # Aplicar filtros SQL directamente
     if categoria:
-        query = query.filter(db.func.lower(Publicacion.categoria) == categoria.lower())
+        query = query.filter(func.lower(Publicacion.categoria) == categoria.lower())
 
     if id_usuario:
         query = query.filter(Publicacion.id_usuario == id_usuario)
@@ -99,12 +102,11 @@ def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria
     if etiquetas:
         etiquetas_normalizadas = [normalizar_texto(e) for e in etiquetas if normalizar_texto(e).strip()]
         if etiquetas_normalizadas:
-            for etiqueta in etiquetas_normalizadas:
+            for et in etiquetas_normalizadas:
                 query = query.filter(
-                    db.func.lower(Publicacion.etiquetas).like(f"%{etiqueta}%")
+                    Publicacion.etiquetas.any(func.lower(Etiqueta.nombre) == et)
                 )
         else:
-            # Si todas las etiquetas eran inválidas o vacías, no devolver nada
             return []
 
     if lat is not None and lon is not None and radio_km is not None:
@@ -112,18 +114,17 @@ def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria
 
     publicaciones = query.all()
 
-    # Filtro por distancia (fuera de SQL)
     if lat is not None and lon is not None and radio_km is not None:
         publicaciones = [
             pub for pub in publicaciones
             if calcular_distancia_km(lat, lon, *pub.coordenadas) <= radio_km
         ]
 
-    # Armar resultado
     resultado = []
     for pub in publicaciones:
         imagenes = Imagen.query.filter_by(id_publicacion=pub.id).all()
         urls_imagenes = [img.url for img in imagenes]
+        etiquetas = [et.nombre for et in pub.etiquetas]
 
         resultado.append({
             'id': pub.id,
@@ -131,8 +132,8 @@ def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria
             'id_locacion': pub.id_locacion,
             'titulo': pub.titulo,
             'descripcion': pub.descripcion,
-            'etiquetas': pub.etiquetas,
             'categoria': pub.categoria,
+            'etiquetas': etiquetas,
             'fecha_creacion': pub.fecha_creacion.isoformat() if pub.fecha_creacion else None,
             'fecha_modificacion': pub.fecha_modificacion.isoformat() if pub.fecha_modificacion else None,
             'coordenadas': pub.coordenadas,
@@ -142,82 +143,75 @@ def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria
     return resultado
 
 
-    
 def actualizar_publicacion(id_publicacion, data):
     publicacion = Publicacion.query.get(id_publicacion)
 
     if not publicacion:
         raise Exception("Publicación no encontrada")
-    
-    etiquetas_crudas = data.get('etiquetas', '')
-    etiquetas_normalizadas = normalizar_texto(etiquetas_crudas)
 
     # Actualizar campos
     publicacion.titulo = data.get('titulo', publicacion.titulo)
     publicacion.descripcion = data.get('descripcion', publicacion.descripcion)
-    publicacion.etiquetas = etiquetas_normalizadas
     publicacion.categoria = data.get('categoria', publicacion.categoria)
     publicacion.id_locacion = data.get('id_locacion', publicacion.id_locacion)
     publicacion.coordenadas = data.get('coordenadas', publicacion.coordenadas)
     publicacion.fecha_modificacion = datetime.utcnow()
 
-    # Actualizar imágenes si se envían nuevas
+    # Actualizar imágenes
     nuevas_imagenes = data.get('imagenes')
     if nuevas_imagenes is not None:
-        # Eliminar imágenes anteriores
         Imagen.query.filter_by(id_publicacion=publicacion.id).delete()
-
-        # Agregar nuevas imágenes
         for url in nuevas_imagenes:
             nueva_imagen = Imagen(id_publicacion=publicacion.id, url=url)
             db.session.add(nueva_imagen)
 
+    # Actualizar etiquetas
+    nuevas_etiquetas = data.get('etiquetas', [])
+    publicacion.etiquetas.clear()  # Elimina todas
+    for etiqueta_texto in nuevas_etiquetas:
+        etiqueta_normalizada = normalizar_texto(etiqueta_texto)
+        etiqueta = Etiqueta.query.filter(func.lower(Etiqueta.nombre) == etiqueta_normalizada).first()
+        if not etiqueta:
+            etiqueta = Etiqueta(nombre=etiqueta_normalizada)
+            db.session.add(etiqueta)
+            db.session.flush()
+        publicacion.etiquetas.append(etiqueta)
+
     db.session.commit()
-    
-    
-    
+
+
 def eliminar_publicacion(id_publicacion):
     publicacion = Publicacion.query.get(id_publicacion)
 
     if not publicacion:
         raise Exception("Publicación no encontrada")
 
-    # Eliminar comentarios desde su función
-    comentarios = Comentario.query.filter_by(id_publicacion=publicacion.id).all()
-    for c in comentarios:
+    for c in Comentario.query.filter_by(id_publicacion=publicacion.id).all():
         eliminar_comentario(c.id)
 
-    # Eliminar imágenes desde su función
-    imagenes = Imagen.query.filter_by(id_publicacion=publicacion.id).all()
-    for img in imagenes:
+    for img in Imagen.query.filter_by(id_publicacion=publicacion.id).all():
         eliminar_imagen(img.id)
-    
-    # Eliminar la publicación
+
     db.session.delete(publicacion)
     db.session.commit()
-    
-    
-    
-    #Extras
-    
+
+
+# Extras
+
 def normalizar_texto(texto):
     if not texto:
         return ''
-    # Elimina tildes y convierte a minúsculas
     texto = unicodedata.normalize('NFD', texto)
     texto = texto.encode('ascii', 'ignore').decode('utf-8')
     return texto.lower().strip()
 
 
 def calcular_distancia_km(lat1, lon1, lat2, lon2):
-    # Fórmula de Haversine
-    R = 6371  # Radio de la Tierra en km
+    from math import radians, sin, cos, sqrt, atan2
+
+    R = 6371  # km
     dlat = radians(lat2 - lat1)
     dlon = radians(lon2 - lon1)
-    a = (
-        (pow((radians(lat2 - lat1)) / 2, 2)) +
-        (pow((radians(lon2 - lon1)) / 2, 2)) *
-        (pow((radians(lat1)), 2))
-    )
-    c = 2 * R * (a ** 0.5)
-    return c
+    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c
