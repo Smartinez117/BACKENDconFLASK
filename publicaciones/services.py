@@ -12,14 +12,14 @@ from flask import current_app
 import cloudinary
 import cloudinary.uploader
 
-def crear_publicacion(data):
+def crear_publicacion(data, usuario):
     try:
         # Obtener coordenadas como lista [lat, lng]
         coord = data.get('coordenadas')  # ← esto es el objeto que llega del frontend
         coordenadas = [coord['lat'], coord['lng']] if coord else None
 
         nueva_publicacion = Publicacion(
-            id_usuario=data.get('id_usuario'),
+            id_usuario= usuario.id,
             id_locacion=data.get('id_locacion'),
             titulo=data.get('titulo'),
             categoria=data.get('categoria'),
@@ -151,11 +151,10 @@ def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria
 
 def actualizar_publicacion(id_publicacion, data):
     publicacion = Publicacion.query.get(id_publicacion)
-
     if not publicacion:
         raise Exception("Publicación no encontrada")
 
-    # Actualizar campos
+    # Actualizar campos básicos
     publicacion.titulo = data.get('titulo', publicacion.titulo)
     publicacion.descripcion = data.get('descripcion', publicacion.descripcion)
     publicacion.categoria = data.get('categoria', publicacion.categoria)
@@ -171,20 +170,15 @@ def actualizar_publicacion(id_publicacion, data):
             nueva_imagen = Imagen(id_publicacion=publicacion.id, url=url)
             db.session.add(nueva_imagen)
 
-    # Actualizar etiquetas
-    nuevas_etiquetas = data.get('etiquetas', [])
-    publicacion.etiquetas.clear()  # Elimina todas
-    for etiqueta_texto in nuevas_etiquetas:
-        etiqueta_normalizada = normalizar_texto(etiqueta_texto)
-        etiqueta = Etiqueta.query.filter(func.lower(Etiqueta.nombre) == etiqueta_normalizada).first()
-        if not etiqueta:
-            etiqueta = Etiqueta(nombre=etiqueta_normalizada)
-            db.session.add(etiqueta)
-            db.session.flush()
-        publicacion.etiquetas.append(etiqueta)
+    # Actualizar etiquetas por ID
+    nuevas_etiquetas_ids = data.get('etiquetas', [])
+    if nuevas_etiquetas_ids:
+        etiquetas = Etiqueta.query.filter(Etiqueta.id.in_(nuevas_etiquetas_ids)).all()
+        publicacion.etiquetas = etiquetas  # reemplaza directamente
 
     db.session.commit()
-
+    
+    
 
 def eliminar_publicacion(id_publicacion):
     publicacion = Publicacion.query.get(id_publicacion)

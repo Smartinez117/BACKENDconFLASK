@@ -1,3 +1,4 @@
+from auth.services import require_auth
 from flask import Blueprint, request, jsonify
 from publicaciones.services import (
     obtener_publicacion_por_id,
@@ -13,9 +14,10 @@ publicaciones_bp = Blueprint("publicaciones", __name__)
 
 # POST
 @publicaciones_bp.route("/publicaciones", methods=["POST"])
-def crear():
+@require_auth
+def crear(usuario):  # 👈 acá se inyecta el usuario autenticado
     data = request.get_json()
-    return crear_publicacion(data)
+    return crear_publicacion(data, usuario)  # 👈 y se pasa al service
 
 
 
