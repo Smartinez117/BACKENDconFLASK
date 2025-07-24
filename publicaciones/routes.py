@@ -7,6 +7,8 @@ from publicaciones.services import (
     eliminar_publicacion,
     normalizar_texto
 )
+from publicaciones.services import subir_imagen_a_cloudinary
+
 publicaciones_bp = Blueprint("publicaciones", __name__)
 
 # POST
@@ -89,6 +91,19 @@ def borrar_publicacion(id_publicacion):
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
+@publicaciones_bp.route('/subir-imagenes', methods=['POST'])
+def subir_imagenes():
+    if 'imagenes' not in request.files:
+        return jsonify({"error": "No se encontraron imágenes"}), 400
 
+    archivos = request.files.getlist('imagenes')
+    urls = []
 
+    for archivo in archivos:
+        url = subir_imagen_a_cloudinary(archivo)
+        if url:
+            urls.append(url)
+        else:
+            return jsonify({"error": "Error al subir una imagen"}), 500
 
+    return jsonify({"urls": urls}), 200

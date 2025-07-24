@@ -39,6 +39,12 @@ migrate = Migrate(app, db)
 CORS(app)
 
 
+# Configuración a cloudinary
+# Cloudinary
+app.config['CLOUDINARY_CLOUD_NAME'] = "redema"
+app.config['CLOUDINARY_API_KEY'] = "152753361657899"
+app.config['CLOUDINARY_API_SECRET'] = "ykSfox6EJCsguW47Ck80onve5Y0"
+app.config['CLOUDINARY_UPLOAD_PRESET'] = "redema_imagenes"
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(publicaciones_bp)

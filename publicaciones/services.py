@@ -6,10 +6,18 @@ from datetime import datetime
 from math import radians
 from sqlalchemy import text, func
 import unicodedata
+import requests
 
+from flask import current_app
+import cloudinary
+import cloudinary.uploader
 
 def crear_publicacion(data):
     try:
+        # Obtener coordenadas como lista [lat, lng]
+        coord = data.get('coordenadas')  # ← esto es el objeto que llega del frontend
+        coordenadas = [coord['lat'], coord['lng']] if coord else None
+
         nueva_publicacion = Publicacion(
             id_usuario=data.get('id_usuario'),
             id_locacion=data.get('id_locacion'),
@@ -18,7 +26,7 @@ def crear_publicacion(data):
             descripcion=data.get('descripcion'),
             fecha_creacion=datetime.utcnow(),
             fecha_modificacion=datetime.utcnow(),
-            coordenadas=data.get('coordenadas')  # lista [lat, lon]
+            coordenadas=coordenadas
         )
 
         db.session.add(nueva_publicacion)
@@ -35,15 +43,11 @@ def crear_publicacion(data):
 
         # Etiquetas
         etiquetas = data.get('etiquetas', [])
-        for etiqueta_texto in etiquetas:
-            etiqueta_normalizada = normalizar_texto(etiqueta_texto)
-            etiqueta = Etiqueta.query.filter(func.lower(Etiqueta.nombre) == etiqueta_normalizada).first()
-            if not etiqueta:
-                etiqueta = Etiqueta(nombre=etiqueta_normalizada)
-                db.session.add(etiqueta)
-                db.session.flush()  # obtener id
+        for etiqueta_id in etiquetas:
+            etiqueta = Etiqueta.query.get(etiqueta_id)
+            if etiqueta:
+                nueva_publicacion.etiquetas.append(etiqueta)
 
-            nueva_publicacion.etiquetas.append(etiqueta)
 
         db.session.commit()
 
@@ -53,6 +57,8 @@ def crear_publicacion(data):
         }, 201
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         db.session.rollback()
         return {"error": str(e)}, 400
 
@@ -215,3 +221,45 @@ def calcular_distancia_km(lat1, lon1, lat2, lon2):
     a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return R * c
+
+#Para subir imagenes a cloudinary
+
+#def subir_imagen_a_cloudinary(file):
+   # url = "https://api.cloudinary.com/v1_1/redema/image/upload"
+    
+    #data = {
+     #   "upload_preset": "redema_imagenes"
+    #}
+
+    #files = {
+    #    "file": file
+    #}
+
+    #response = requests.post(url, data=data, files=files)
+    
+    #if response.status_code == 200:
+     #   return response.json().get("secure_url")
+    #else:
+     #   print("Error al subir la imagen:", response.text)
+      #  return None
+
+def subir_imagen_a_cloudinary(file):
+    try:
+        # Configura Cloudinary con los valores desde app.config
+        cloudinary.config(
+            cloud_name=current_app.config['CLOUDINARY_CLOUD_NAME'],
+            api_key=current_app.config['CLOUDINARY_API_KEY'],
+            api_secret=current_app.config['CLOUDINARY_API_SECRET']
+        )
+
+        # Sube la imagen
+        result = cloudinary.uploader.upload(
+            file,
+            upload_preset=current_app.config['CLOUDINARY_UPLOAD_PRESET']
+        )
+
+        return result.get("secure_url")
+
+    except Exception as e:
+        print("Error al subir imagen:", str(e))
+        return None
