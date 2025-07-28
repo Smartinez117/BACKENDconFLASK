@@ -19,6 +19,10 @@ from qr.routes import qr_bp
 from pdf.routes import pdf_bp
 from ubicacion.routes import ubicacion_bp
 from etiquetas.routes import etiquetas_bp
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 
 
@@ -32,7 +36,7 @@ firebase_admin.initialize_app(cred)
 # Configuración de la base de datos con SQLAlchemy
 # Configuración de SQLAlchemy con Supabase (Session Pooler)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres.rloagvhioijwvqgknuex:redeMaster12312341234554377@aws-0-us-east-2.pooler.supabase.com:5432/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -41,10 +45,10 @@ CORS(app)
 
 # Configuración a cloudinary
 # Cloudinary
-app.config['CLOUDINARY_CLOUD_NAME'] = "redema"
-app.config['CLOUDINARY_API_KEY'] = "152753361657899"
-app.config['CLOUDINARY_API_SECRET'] = "ykSfox6EJCsguW47Ck80onve5Y0"
-app.config['CLOUDINARY_UPLOAD_PRESET'] = "redema_imagenes"
+app.config['CLOUDINARY_CLOUD_NAME'] = os.getenv("CLOUDINARY_CLOUD_NAME")
+app.config['CLOUDINARY_API_KEY'] = os.getenv("CLOUDINARY_API_KEY")
+app.config['CLOUDINARY_API_SECRET'] = os.getenv("CLOUDINARY_API_SECRET")
+app.config['CLOUDINARY_UPLOAD_PRESET'] = os.getenv("CLOUDINARY_UPLOAD_PRESET")
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(publicaciones_bp)
