@@ -36,3 +36,32 @@ def obtener_localidades():
             'longitud': l.longitud
         } for l in localidades
     ])
+    
+    
+
+@ubicacion_bp.route('/localidades', methods=['POST'])
+def crear_localidad():
+    data = request.get_json()
+    nombre = data.get('nombre')
+    latitud = data.get('latitud')
+    longitud = data.get('longitud')
+    id_departamento = data.get('id_departamento')
+
+    if not all([nombre, latitud, longitud, id_departamento]):
+        return jsonify({"error": "Faltan datos obligatorios"}), 400
+
+    nueva_localidad = Localidad(
+        nombre=nombre,
+        latitud=latitud,
+        longitud=longitud,
+        id_departamento=id_departamento
+    )
+    db.session.add(nueva_localidad)
+    db.session.commit()
+
+    return jsonify({
+        "id": nueva_localidad.id,
+        "nombre": nueva_localidad.nombre,
+        "latitud": nueva_localidad.latitud,
+        "longitud": nueva_localidad.longitud
+    }), 201
