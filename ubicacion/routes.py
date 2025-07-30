@@ -65,3 +65,40 @@ def crear_localidad():
         "latitud": nueva_localidad.latitud,
         "longitud": nueva_localidad.longitud
     }), 201
+
+
+# --- PUT Localidad (actualizar) ---
+@ubicacion_bp.route('/localidades/<int:id_localidad>', methods=['PATCH'])
+def actualizar_localidad(id_localidad):
+    data = request.get_json()
+    localidad = Localidad.query.get(id_localidad)
+
+    if not localidad:
+        return jsonify({"error": "Localidad no encontrada"}), 404
+
+    localidad.nombre = data.get('nombre', localidad.nombre)
+    localidad.latitud = data.get('latitud', localidad.latitud)
+    localidad.longitud = data.get('longitud', localidad.longitud)
+    localidad.id_departamento = data.get('id_departamento', localidad.id_departamento)
+
+    db.session.commit()
+
+    return jsonify({
+        "id": localidad.id,
+        "nombre": localidad.nombre,
+        "latitud": localidad.latitud,
+        "longitud": localidad.longitud
+    })
+
+# --- DELETE Localidad ---
+@ubicacion_bp.route('/localidades/<int:id_localidad>', methods=['DELETE'])
+def eliminar_localidad(id_localidad):
+    localidad = Localidad.query.get(id_localidad)
+
+    if not localidad:
+        return jsonify({"error": "Localidad no encontrada"}), 404
+
+    db.session.delete(localidad)
+    db.session.commit()
+
+    return jsonify({"mensaje": "Localidad eliminada correctamente"})
