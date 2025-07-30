@@ -7,9 +7,10 @@ import requests
 import qrcode
 from datetime import datetime
 from reportlab.platypus import Paragraph
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from PIL import Image as PilImage
-from reportlab.lib.styles import ParagraphStyle
+import os
+
 
 def generar_pdf_publicacion(id_publicacion):
     publicacion = Publicacion.query.get(id_publicacion)
@@ -22,27 +23,26 @@ def generar_pdf_publicacion(id_publicacion):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
-    y = height - 50
+    y = height - 40
 
-
-    
-    
+    # Estilos
     styles = getSampleStyleSheet()
-    styleN = ParagraphStyle(
-        name='Normal',
-        fontSize=20,  #  Aumenta este valor
-        leading=16    #  Espaciado entre líneas
+    style_normal = ParagraphStyle(
+        name="Normal",
+        fontSize=12,
+        leading=16,
+        spaceAfter=12
     )
-    styleT = styles['Title']
+    style_title = styles['Title']
 
-    # Título de la categoría
+    # Título
     titulo = f"{publicacion.categoria.upper()}: {publicacion.titulo or ''}"
-    p_titulo = Paragraph(titulo, styleT)
-    p_titulo.wrapOn(c, width - 100, 50)
-    p_titulo.drawOn(c, 50, y)
-    y -= 70
+    p_titulo = Paragraph(titulo, style_title)
+    w, h = p_titulo.wrap(width - 100, 50)
+    p_titulo.drawOn(c, 50, y - h)
+    y -= (h + 20)
 
-    # Imagen principal centrada
+    # Imagen principal
     if imagen:
         try:
             response = requests.get(imagen.url)
@@ -51,66 +51,88 @@ def generar_pdf_publicacion(id_publicacion):
                 pil_img = PilImage.open(img_data)
                 img_width, img_height = pil_img.size
 
-                display_width = width / 2
+                max_display_height = 300
+                display_width = width * 0.6
                 display_height = display_width * img_height / img_width
-                x_pos = (width - display_width) / 2
 
-                c.drawImage(ImageReader(pil_img), x_pos, y - display_height, width=display_width, height=display_height)
-                y -= (display_height + 30)
+                # Si se pasa del alto máximo, escalamos nuevamente
+                if display_height > max_display_height:
+                    display_height = max_display_height
+                    display_width = display_height * img_width / img_height
+
+                x_img = (width - display_width) / 2
+                c.drawImage(ImageReader(pil_img), x_img, y - display_height, width=display_width, height=display_height)
+                y -= (display_height + 20)
         except Exception as e:
             print("Error cargando imagen:", e)
 
     # Descripción
-    descripcion = Paragraph(f"<b>Descripción:</b> {publicacion.descripcion or 'No disponible'}", styleN)
-    descripcion.wrapOn(c, width - 100, 100)
-    descripcion.drawOn(c, 50, y)
-    y -= 100
+    descripcion = Paragraph(f"<b>Descripción:</b> {publicacion.descripcion or 'No disponible'}", style_normal)
+    w, h = descripcion.wrap(width - 100, height)
+    descripcion.drawOn(c, 50, y - h)
+    y -= (h + 10)
 
     # Teléfono
     telefono = f"{usuario.telefono_pais or ''} {usuario.telefono_numero_local or ''}".strip() or "No disponible"
-    parrafo_tel = Paragraph(f"<b>Contacto:</b> {telefono}", styleN)
-    parrafo_tel.wrapOn(c, width - 100, 20)
-    parrafo_tel.drawOn(c, 50, y)
-    y -= 25
+    parrafo_tel = Paragraph(f"<b>Contacto:</b> {telefono}", style_normal)
+    w, h = parrafo_tel.wrap(width - 100, height)
+    parrafo_tel.drawOn(c, 50, y - h)
+    y -= (h + 10)
 
-    # Ubicación resumida
+    # Ubicación
     if publicacion.coordenadas:
         lat, lon = publicacion.coordenadas
         direccion = coordenadas_a_direccion(lat, lon)
     else:
         direccion = "No disponible"
-    parrafo_ubi = Paragraph(f"<b>Ubicación:</b> {direccion}", styleN)
-    parrafo_ubi.wrapOn(c, width - 100, 40)
-    parrafo_ubi.drawOn(c, 50, y)
-    y -= 30
+
+    parrafo_ubi = Paragraph(f"<b>Ubicación:</b> {direccion}", style_normal)
+    w, h = parrafo_ubi.wrap(width - 100, height)
+    parrafo_ubi.drawOn(c, 50, y - h)
+    y -= (h + 10)
 
     # Fecha
     fecha = publicacion.fecha_creacion.strftime("%d/%m/%Y") if publicacion.fecha_creacion else "Desconocida"
-    parrafo_fecha = Paragraph(f"<b>Fecha:</b> {fecha}", styleN)
-    parrafo_fecha.wrapOn(c, width - 100, 20)
-    parrafo_fecha.drawOn(c, 50, y)
-    y -= 40
+    parrafo_fecha = Paragraph(f"<b>Fecha:</b> {fecha}", style_normal)
+    w, h = parrafo_fecha.wrap(width - 100, height)
+    parrafo_fecha.drawOn(c, 50, y - h)
+    y -= (h + 20)
 
-    # QR con enlace a la publicación
+    # Código QR (abajo derecha)
     url = f"https://tusitio.com/publicacion/{id_publicacion}"
     qr = qrcode.make(url)
     qr_buffer = BytesIO()
     qr.save(qr_buffer, format="PNG")
     qr_buffer.seek(0)
     qr_img = PilImage.open(qr_buffer)
-    c.drawImage(ImageReader(qr_img), width - 150, 40, width=100, height=100)
+    qr_size = 230  # tamaño más grande del QR
+    c.drawImage(ImageReader(qr_img), width - qr_size - 10, 20, width=qr_size, height=qr_size)
 
-    # Finalizar
+    # Logo (abajo izquierda)
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # Sube a BACKENDconFLASK
+    logo_path = os.path.join(base_dir, "Logo.jpg")  # Asegúrate que esté aquí
+
+    
+    if os.path.exists(logo_path):
+        try:
+            logo_reader = ImageReader(logo_path)
+            c.drawImage(logo_reader, 30, 30, width=80, height=80, preserveAspectRatio=True, mask='auto')
+            print("✅ Logo dibujado correctamente.")
+        except Exception as e:
+            print("❌ Error dibujando el logo:", e)
+    else:
+        print(f"❌ Logo NO encontrado en: {logo_path}")
+
+
+
     c.showPage()
     c.save()
     buffer.seek(0)
-
     return buffer
 
 
-
 def coordenadas_a_direccion(lat, lon):
-    url = f"https://nominatim.openstreetmap.org/reverse"
+    url = "https://nominatim.openstreetmap.org/reverse"
     params = {
         'format': 'json',
         'lat': lat,
@@ -118,7 +140,6 @@ def coordenadas_a_direccion(lat, lon):
         'zoom': 16,
         'addressdetails': 1
     }
-
     headers = {
         'User-Agent': 'RedemaBot/1.0 (tucorreo@example.com)'
     }
@@ -127,15 +148,10 @@ def coordenadas_a_direccion(lat, lon):
     if response.status_code == 200:
         data = response.json()
         address = data.get('address', {})
-        
         partes = [
-            address.get('road'),                # calle
-            address.get('suburb'),              # barrio
-            address.get('city') or address.get('town') or address.get('village'),  # ciudad/pueblo
+            address.get('road'),
+            address.get('suburb'),
+            address.get('city') or address.get('town') or address.get('village'),
         ]
-        
-        # Filtrar nulos y unir con coma
-        direccion_resumida = ', '.join([p for p in partes if p])
-        return direccion_resumida or "Ubicación no disponible"
-    
+        return ', '.join([p for p in partes if p]) or "Ubicación no disponible"
     return "Ubicación no disponible"
