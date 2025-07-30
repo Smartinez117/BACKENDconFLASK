@@ -110,3 +110,18 @@ def subir_imagenes():
             return jsonify({"error": "Error al subir una imagen"}), 500
 
     return jsonify({"urls": urls}), 200
+
+
+#obtener publicaciones por usuario:
+@publicaciones_bp.route("/publicaciones/mis-publicaciones", methods=["GET"])
+@require_auth
+def publicaciones_usuario_actual():
+    usuario = g.usuario_actual
+
+    # Si es admin, devuelve todas las publicaciones
+    if usuario.rol == 'admin':
+        publicaciones = obtener_publicaciones_filtradas()
+    else:
+        publicaciones = obtener_publicaciones_filtradas(id_usuario=usuario.id)
+
+    return jsonify(publicaciones), 200
