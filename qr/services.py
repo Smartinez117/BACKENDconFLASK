@@ -4,7 +4,7 @@ import base64
 
 def generar_qr(id_publicacion):
     # URL que se codificará en el QR
-    url = f"https://redema.vercel.app/publicacion/{id_publicacion}"
+    url = f"http://localhost:5173/publicacion/{id_publicacion}"
 
     # Crear QR
     qr = qrcode.QRCode(box_size=10, border=4)
