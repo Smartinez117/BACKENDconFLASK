@@ -1,13 +1,15 @@
 from flask import Blueprint, request, jsonify
-from core.models import db, Etiqueta, Publicacion
+from core.models import db, Etiqueta
 from sqlalchemy.exc import IntegrityError
 
-etiquetas_bp = Blueprint('etiquetas', __name__)
+etiquetas_bp = Blueprint('etiquetas', __name__, url_prefix='/api/etiquetas')
+
 
 @etiquetas_bp.route('/', methods=['GET'])
 def listar_etiquetas():
     etiquetas = Etiqueta.query.order_by(Etiqueta.nombre).all()
     return jsonify([{"id": e.id, "nombre": e.nombre} for e in etiquetas])
+
 
 @etiquetas_bp.route('/', methods=['POST'])
 def crear_etiqueta():
@@ -17,6 +19,7 @@ def crear_etiqueta():
         return jsonify({"error": "El nombre es obligatorio"}), 400
     if Etiqueta.query.filter_by(nombre=nombre).first():
         return jsonify({"error": "La etiqueta ya existe"}), 409
+
     etiqueta = Etiqueta(nombre=nombre)
     db.session.add(etiqueta)
     try:
@@ -24,4 +27,53 @@ def crear_etiqueta():
     except IntegrityError:
         db.session.rollback()
         return jsonify({"error": "Error al guardar"}), 500
+
     return jsonify({"id": etiqueta.id, "nombre": etiqueta.nombre}), 201
+
+
+@etiquetas_bp.route('/<int:id>', methods=['GET'])
+def obtener_etiqueta(id):
+    etiqueta = Etiqueta.query.get(id)
+    if not etiqueta:
+        return jsonify({"error": "Etiqueta no encontrada"}), 404
+    return jsonify({"id": etiqueta.id, "nombre": etiqueta.nombre})
+
+
+@etiquetas_bp.route('/<int:id>', methods=['PATCH'])
+def actualizar_etiqueta(id):
+    etiqueta = Etiqueta.query.get(id)
+    if not etiqueta:
+        return jsonify({"error": "Etiqueta no encontrada"}), 404
+
+    data = request.json
+    nuevo_nombre = data.get("nombre", "").strip()
+    if not nuevo_nombre:
+        return jsonify({"error": "El nombre es obligatorio"}), 400
+
+    if Etiqueta.query.filter(Etiqueta.nombre == nuevo_nombre, Etiqueta.id != id).first():
+        return jsonify({"error": "Otra etiqueta con ese nombre ya existe"}), 409
+
+    etiqueta.nombre = nuevo_nombre
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"error": "Error al actualizar"}), 500
+
+    return jsonify({"id": etiqueta.id, "nombre": etiqueta.nombre})
+
+
+@etiquetas_bp.route('/<int:id>', methods=['DELETE'])
+def eliminar_etiqueta(id):
+    etiqueta = Etiqueta.query.get(id)
+    if not etiqueta:
+        return jsonify({"error": "Etiqueta no encontrada"}), 404
+
+    db.session.delete(etiqueta)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"error": "No se pudo eliminar, puede estar en uso"}), 500
+
+    return jsonify({"mensaje": "Etiqueta eliminada correctamente"})
