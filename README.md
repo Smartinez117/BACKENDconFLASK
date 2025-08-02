@@ -10,3 +10,10 @@ para gitbash usar:
 source env/Scripts/activate     #esto activara el entorno virtual
 para correr el flask usar:
 flask --app app --debug run
+
+
+martinez
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+python app.py

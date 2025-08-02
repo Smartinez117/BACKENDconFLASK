@@ -72,3 +72,23 @@ def filtrar_usuarios_service(filtros):
         }
         for u in usuarios
     ]
+
+#funcion para obtener los datos del usuario por uid
+def obtener_usuario_por_uid(uid):
+    usuario = Usuario.query.filter_by(firebase_uid=uid).first()
+
+    if not usuario:
+        return None
+
+    return {
+        'id': usuario.id,
+        'firebase_uid': usuario.firebase_uid,
+        'nombre': usuario.nombre,
+        'email': usuario.email,
+        'foto_perfil_url': usuario.foto_perfil_url,
+        'rol': usuario.rol,
+        'fecha_registro': usuario.fecha_registro,
+        'telefono_pais': usuario.telefono_pais,
+        'telefono_numero_local': usuario.telefono_numero_local,
+        'descripcion': usuario.descripcion
+    }

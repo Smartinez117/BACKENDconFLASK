@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from core.models import db, Usuario
-from usuarios.services import actualizar_datos_usuario , get_usuario,filtrar_usuarios_service
-
+from usuarios.services import actualizar_datos_usuario , get_usuario,filtrar_usuarios_service, obtener_usuario_por_uid
+#agregado de import
+from firebase_admin import auth
 usuarios_bp = Blueprint('usuarios', __name__)
 
 #Endpoint para actualizar información del usuario
@@ -64,3 +65,33 @@ def eliminar_usuario(id_usuario):
     db.session.commit()
 
     return jsonify({'mensaje': f'Usuario {usuario.nombre} eliminado correctamente'}), 200
+
+
+#endpoint para obtener los datos de un usuario por el uid (usando en la interface de configuraciones de perfil)
+@usuarios_bp.route('/api/userconfig', methods=['GET'])
+def user_config():
+    auth_header = request.headers.get('Authorization', '')
+
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'error': 'Token no proporcionado o malformado'}), 401
+
+    id_token = auth_header.split('Bearer ')[1]
+
+    try:
+        # Validar token y extraer uid
+        decoded_token = auth.verify_id_token(id_token)
+        uid = decoded_token.get('uid')
+
+        if not uid:
+            return jsonify({'error': 'Token inválido, sin uid'}), 401
+
+        # Buscar usuario por uid
+        usuario = obtener_usuario_por_uid(uid)
+        if not usuario:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+
+        # Devolver datos completos del usuario
+        return jsonify(usuario), 200
+
+    except Exception as e:
+        return jsonify({'error': 'Token inválido o expirado', 'detalle': str(e)}), 401
