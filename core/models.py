@@ -12,7 +12,7 @@ class Usuario(db.Model):
     email = db.Column(db.Text, nullable=False)
     foto_perfil_url = db.Column(db.Text)
     rol = db.Column(db.Text)
-    fecha_registro = db.Column(db.DateTime)
+    fecha_registro = db.Column(db.DateTime(timezone=True))
     telefono_pais = db.Column(db.Text)
     telefono_numero_local = db.Column(db.BigInteger)
     descripcion = db.Column(db.Text)
@@ -54,8 +54,8 @@ class Comentario(db.Model):
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     id_anterior = db.Column(db.Integer)
     descripcion = db.Column(db.Text)
-    fecha_creacion = db.Column(db.DateTime, nullable=False)
-    fecha_modificacion = db.Column(db.DateTime)
+    fecha_creacion = db.Column(db.DateTime(timezone=True), nullable=False)
+    fecha_modificacion = db.Column(db.DateTime(timezone=True))
 
 class Imagen(db.Model):
     __tablename__ = 'imagenes'
@@ -95,7 +95,7 @@ class Notificacion(db.Model):
     titulo = db.Column(db.Text)
     descripcion = db.Column(db.Text)
     tipo = db.Column(db.Text)
-    fecha_creacion = db.Column(db.DateTime, nullable=False)
+    fecha_creacion = db.Column(db.DateTime(timezone=True), nullable=False)
     leido = db.Column(db.Boolean, default=False)
     
     
@@ -106,4 +106,4 @@ class Reporte(db.Model):
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     descripcion = db.Column(db.Text)
     tipo = db.Column(db.Text)
-    fecha_creacion = db.Column(db.DateTime, nullable=False)
+    fecha_creacion = db.Column(db.DateTime(timezone=True), nullable=False)
