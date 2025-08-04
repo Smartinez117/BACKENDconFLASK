@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from comentarios.services import (
     crear_comentario,
     obtener_comentarios_por_publicacion,
@@ -7,12 +7,15 @@ from comentarios.services import (
     actualizar_comentario,
     eliminar_comentario
 )
+from auth.services import require_auth
 
 comentarios_bp = Blueprint("comentarios", __name__)
 
 @comentarios_bp.route("/comentarios", methods=["POST"])
+@require_auth
 def crear():
     data = request.get_json()
+    data["id_usuario"] = g.usuario_actual.id
     return crear_comentario(data)
 
 
