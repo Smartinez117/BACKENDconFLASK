@@ -1,6 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from core.models import db, Comentario, Publicacion, Notificacion,Usuario
 from notificaciones.services import crear_notificacion
+import pytz
+
+zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
 
 
 def crear_comentario(data):
@@ -10,8 +13,8 @@ def crear_comentario(data):
             id_usuario=data['id_usuario'],
             id_anterior=data.get('id_anterior'),
             descripcion=data['descripcion'],
-            fecha_creacion=datetime.utcnow(),
-            fecha_modificacion=datetime.utcnow()
+            fecha_creacion=datetime.now(timezone.utc),
+            fecha_modificacion=datetime.now(timezone.utc)
         )
         db.session.add(nuevo)
 
@@ -45,8 +48,8 @@ def obtener_comentarios_por_publicacion(id):
             "id": c.id,
             "id_usuario": c.id_usuario,
             "descripcion": c.descripcion,
-            "fecha_creacion": c.fecha_creacion.isoformat(),
-            "fecha_modificacion": c.fecha_modificacion.isoformat() if c.fecha_modificacion else None,
+            "fecha_creacion": c.fecha_creacion.astimezone(zona_arg).isoformat() if c.fecha_creacion else None,
+            "fecha_modificacion": c.fecha_modificacion.astimezone(zona_arg).isoformat() if c.fecha_modificacion else None,
             "id_anterior": c.id_anterior
         })
     return resultado
@@ -64,8 +67,8 @@ def obtener_comentario_por_su_id(id_comentario):
         'id_usuario': comentario.id_usuario,
         'id_anterior': comentario.id_anterior,
         'descripcion': comentario.descripcion,
-        'fecha_creacion': comentario.fecha_creacion.isoformat() if comentario.fecha_creacion else None,
-        'fecha_modificacion': comentario.fecha_modificacion.isoformat() if comentario.fecha_modificacion else None
+        'fecha_creacion': comentario.fecha_creacion.astimezone(zona_arg).isoformat() if comentario.fecha_creacion else None,
+        'fecha_modificacion': comentario.fecha_modificacion.astimezone(zona_arg).isoformat() if comentario.fecha_modificacion else None
     }
     
 def obtener_todos():
@@ -81,8 +84,8 @@ def obtener_todos():
             'id_usuario': comentario.id_usuario,
             'id_anterior': comentario.id_anterior,
             'descripcion': comentario.descripcion,
-            'fecha_creacion': comentario.fecha_creacion.isoformat() if comentario.fecha_creacion else None,
-            'fecha_modificacion': comentario.fecha_modificacion.isoformat() if comentario.fecha_modificacion else None
+            'fecha_creacion': comentario.fecha_creacion.astimezone(zona_arg).isoformat() if comentario.fecha_creacion else None,
+            'fecha_modificacion': comentario.fecha_modificacion.astimezone(zona_arg).isoformat() if comentario.fecha_modificacion else None
         })
     return resultado
 
@@ -93,7 +96,7 @@ def actualizar_comentario(id_comentario, data):
         raise Exception("Comentario no encontrado")
 
     comentario.descripcion = data.get("descripcion", comentario.descripcion)
-    comentario.fecha_modificacion = datetime.utcnow()
+    comentario.fecha_modificacion = datetime.now(timezone.utc)
 
     db.session.commit()
 
