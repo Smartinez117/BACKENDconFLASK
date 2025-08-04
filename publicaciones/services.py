@@ -2,7 +2,7 @@ from flask import jsonify
 from comentarios.services import eliminar_comentario
 from imagenes.services import eliminar_imagen
 from core.models import Comentario, db, Publicacion, Imagen, Etiqueta, PublicacionEtiqueta
-from datetime import datetime
+from datetime import datetime, timezone
 from math import radians
 from sqlalchemy import text, func
 import unicodedata
@@ -11,6 +11,9 @@ import requests
 from flask import current_app
 import cloudinary
 import cloudinary.uploader
+
+import pytz
+zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
 
 def crear_publicacion(data, usuario):
     try:
@@ -24,8 +27,8 @@ def crear_publicacion(data, usuario):
             titulo=data.get('titulo'),
             categoria=data.get('categoria'),
             descripcion=data.get('descripcion'),
-            fecha_creacion=datetime.utcnow(),
-            fecha_modificacion=datetime.utcnow(),
+            fecha_creacion=datetime.utcnow(timezone.utc),
+            fecha_modificacion=datetime.utcnow(timezone.utc),
             coordenadas=coordenadas
         )
 
@@ -81,8 +84,8 @@ def obtener_publicacion_por_id(id_publicacion):
         'descripcion': pub.descripcion,
         'categoria': pub.categoria,
         'etiquetas': etiquetas,
-        'fecha_creacion': pub.fecha_creacion.isoformat() if pub.fecha_creacion else None,
-        'fecha_modificacion': pub.fecha_modificacion.isoformat() if pub.fecha_modificacion else None,
+        'fecha_creacion': pub.fecha_creacion.astimezone(zona_arg).isoformat() if pub.fecha_creacion else None,
+        'fecha_modificacion': pub.fecha_modificacion.astimezone(zona_arg).isoformat() if pub.fecha_modificacion else None,
         'coordenadas': pub.coordenadas,
         'imagenes': urls_imagenes
     }
@@ -140,8 +143,8 @@ def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria
             'descripcion': pub.descripcion,
             'categoria': pub.categoria,
             'etiquetas': etiquetas,
-            'fecha_creacion': pub.fecha_creacion.isoformat() if pub.fecha_creacion else None,
-            'fecha_modificacion': pub.fecha_modificacion.isoformat() if pub.fecha_modificacion else None,
+            'fecha_creacion': pub.fecha_creacion.astimezone(zona_arg).isoformat() if pub.fecha_creacion else None,
+            'fecha_modificacion': pub.fecha_modificacion.astimezone(zona_arg).isoformat() if pub.fecha_modificacion else None,
             'coordenadas': pub.coordenadas,
             'imagenes': urls_imagenes
         })
@@ -160,7 +163,7 @@ def actualizar_publicacion(id_publicacion, data):
     publicacion.categoria = data.get('categoria', publicacion.categoria)
     publicacion.id_locacion = data.get('id_locacion', publicacion.id_locacion)
     publicacion.coordenadas = data.get('coordenadas', publicacion.coordenadas)
-    publicacion.fecha_modificacion = datetime.utcnow()
+    publicacion.fecha_modificacion = datetime.utcnow(timezone.utc)
 
     # Actualizar imágenes
     nuevas_imagenes = data.get('imagenes')

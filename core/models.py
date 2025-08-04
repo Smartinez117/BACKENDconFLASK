@@ -41,8 +41,8 @@ class Publicacion(db.Model):
     titulo = db.Column(db.Text)
     categoria = db.Column(db.Text, nullable=False)
     descripcion = db.Column(db.Text)
-    fecha_creacion = db.Column(db.DateTime)
-    fecha_modificacion = db.Column(db.DateTime)
+    fecha_creacion = db.Column(db.DateTime(timezone=True))
+    fecha_modificacion = db.Column(db.DateTime(timezone=True))
     coordenadas = db.Column(db.ARRAY(db.Float))
 
     etiquetas = db.relationship('Etiqueta', secondary='publicacion_etiqueta', back_populates='publicaciones')
