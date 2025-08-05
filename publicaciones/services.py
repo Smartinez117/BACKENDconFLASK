@@ -163,7 +163,7 @@ def actualizar_publicacion(id_publicacion, data):
     publicacion.categoria = data.get('categoria', publicacion.categoria)
     publicacion.id_locacion = data.get('id_locacion', publicacion.id_locacion)
     publicacion.coordenadas = data.get('coordenadas', publicacion.coordenadas)
-    publicacion.fecha_modificacion = datetime.utcnow(timezone.utc)
+    publicacion.fecha_modificacion = datetime.now(timezone.utc)
 
     # Actualizar imágenes
     nuevas_imagenes = data.get('imagenes')
