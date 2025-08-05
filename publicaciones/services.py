@@ -27,8 +27,8 @@ def crear_publicacion(data, usuario):
             titulo=data.get('titulo'),
             categoria=data.get('categoria'),
             descripcion=data.get('descripcion'),
-            fecha_creacion=datetime.utcnow(timezone.utc),
-            fecha_modificacion=datetime.utcnow(timezone.utc),
+            fecha_creacion=datetime.now(timezone.utc),
+            fecha_modificacion=datetime.now(timezone.utc),
             coordenadas=coordenadas
         )
 
