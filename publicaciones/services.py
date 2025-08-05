@@ -121,6 +121,8 @@ def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria
     if lat is not None and lon is not None and radio_km is not None:
         query = query.filter(Publicacion.coordenadas.isnot(None))
 
+
+    query = query.order_by(Publicacion.fecha_creacion.desc())
     publicaciones = query.all()
 
     if lat is not None and lon is not None and radio_km is not None:
