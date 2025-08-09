@@ -44,13 +44,18 @@ def obtener_localidad(id):
     if not localidad:
         return jsonify({'error': 'Localidad no encontrada'}), 404
 
+    departamento = Departamento.query.get(localidad.id_departamento)
+    provincia_id = departamento.id_provincia if departamento else None
+
     return jsonify({
         'id': localidad.id,
         'nombre': localidad.nombre,
         'id_departamento': localidad.id_departamento,
+        'id_provincia': provincia_id,
         'latitud': float(localidad.latitud) if localidad.latitud else None,
         'longitud': float(localidad.longitud) if localidad.longitud else None
-    })   
+    })
+  
 
 @ubicacion_bp.route('/localidades', methods=['POST'])
 def crear_localidad():
