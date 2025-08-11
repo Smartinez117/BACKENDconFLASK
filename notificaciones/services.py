@@ -1,5 +1,8 @@
 from core.models import db, Notificacion
-from datetime import datetime
+from datetime import datetime,timezone
+
+import pytz
+zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
 
 def crear_notificacion(data):
     try:
@@ -8,7 +11,7 @@ def crear_notificacion(data):
             titulo=data.get('titulo'),
             descripcion=data.get('descripcion'),
             tipo=data.get('tipo'),
-            fecha_creacion=datetime.utcnow(),
+            fecha_creacion=datetime.now(timezone.utc),
             leido=False
         )
         db.session.add(nueva)
@@ -51,7 +54,7 @@ def eliminar_notificacion(id_noti):
 
 
 def noti_to_dict(n):
-    ahora = datetime.utcnow()
+    ahora = datetime.now(timezone.utc)
     delta = ahora - n.fecha_creacion
 
     if delta.days > 0:

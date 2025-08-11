@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify , g
 from notificaciones.services import (
     crear_notificacion,
     obtener_notificaciones_por_usuario,
@@ -6,7 +6,7 @@ from notificaciones.services import (
     marcar_notificacion_como_leida,
     eliminar_notificacion
 )
-
+from auth.services import require_auth
 notificaciones_bp = Blueprint("notificaciones", __name__)
 
 @notificaciones_bp.route("/notificaciones", methods=["POST"])
@@ -15,10 +15,12 @@ def crear():
     return crear_notificacion(data)
 
 
-@notificaciones_bp.route("/notificaciones/<int:id_usuario>", methods=["GET"])
-def get_por_usuario(id_usuario):
+@notificaciones_bp.route("/notificaciones/usuario", methods=["GET"])
+@require_auth
+def get_por_usuario():
+    usuario = g.usuario_actual.id
     solo_no_leidas = request.args.get("solo_no_leidas", "false").lower() == "true"
-    notis = obtener_notificaciones_por_usuario(id_usuario, solo_no_leidas)
+    notis = obtener_notificaciones_por_usuario(usuario, solo_no_leidas)
     return jsonify(notis), 200
 
 @notificaciones_bp.route("/notificaciones", methods=["GET"])
