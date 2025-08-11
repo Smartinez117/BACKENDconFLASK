@@ -3,10 +3,11 @@ from flask import Blueprint, request, jsonify, g
 from publicaciones.services import (
     obtener_publicacion_por_id,
     obtener_publicaciones_filtradas,
+    obtener_todas_publicaciones,
     crear_publicacion,
     actualizar_publicacion,
     eliminar_publicacion,
-    normalizar_texto
+    normalizar_texto,
 )
 from publicaciones.services import subir_imagen_a_cloudinary
 
@@ -29,7 +30,11 @@ def get_publicacion(id_publicacion):
     publicacion = obtener_publicacion_por_id(id_publicacion)
     return jsonify(publicacion), 200
 
-
+# Obtener todas las publicaciones para el home
+@publicaciones_bp.route('/publicaciones', methods=['GET'])
+def get_publicaciones():
+    publicacion = obtener_todas_publicaciones()
+    return jsonify(publicacion), 200
 
 
 #GET /publicaciones/filtrar?lat=-34.60&lon=-58.38&radio=10&categoria=perdido&etiquetas=marron,grande&fecha_min=2025-07-01&fecha_max=2025-07-08&id_usuario=1

@@ -47,6 +47,7 @@ class Publicacion(db.Model):
 
     etiquetas = db.relationship('Etiqueta', secondary='publicacion_etiqueta', back_populates='publicaciones')
     imagenes = db.relationship('Imagen', backref='publicacion', lazy='select')
+    localidad = db.relationship("Localidad", backref="publicaciones")
 
 class Comentario(db.Model):
     __tablename__ = 'comentarios'
