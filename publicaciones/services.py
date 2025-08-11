@@ -5,6 +5,7 @@ from core.models import Comentario, db, Publicacion, Imagen, Etiqueta, Publicaci
 from datetime import datetime, timezone
 from math import radians
 from sqlalchemy import text, func
+from sqlalchemy.orm import joinedload
 import unicodedata
 import requests
 
@@ -14,6 +15,7 @@ import cloudinary.uploader
 
 import pytz
 zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
+
 
 def crear_publicacion(data, usuario):
     try:
@@ -63,6 +65,7 @@ def crear_publicacion(data, usuario):
         import traceback
         traceback.print_exc()
         db.session.rollback()
+        db.session.close()
         return {"error": str(e)}, 400
 
 
@@ -92,7 +95,11 @@ def obtener_publicacion_por_id(id_publicacion):
 
 
 def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria=None, etiquetas=None, fecha_min=None, fecha_max=None, id_usuario=None):
-    query = db.session.query(Publicacion)
+    query = db.session.query(Publicacion).options(
+        joinedload(Publicacion.imagenes),  #left join de imagenes y etiquetas
+        joinedload(Publicacion.etiquetas)
+    )
+    
 
     if categoria:
         query = query.filter(func.lower(Publicacion.categoria) == categoria.lower())
@@ -133,8 +140,7 @@ def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria
 
     resultado = []
     for pub in publicaciones:
-        imagenes = Imagen.query.filter_by(id_publicacion=pub.id).all()
-        urls_imagenes = [img.url for img in imagenes]
+        urls_imagenes = [img.url for img in pub.imagenes]
         etiquetas = [et.nombre for et in pub.etiquetas]
 
         resultado.append({

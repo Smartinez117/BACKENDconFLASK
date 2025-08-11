@@ -46,6 +46,7 @@ class Publicacion(db.Model):
     coordenadas = db.Column(db.ARRAY(db.Float))
 
     etiquetas = db.relationship('Etiqueta', secondary='publicacion_etiqueta', back_populates='publicaciones')
+    imagenes = db.relationship('Imagen', backref='publicacion', lazy='select')
 
 class Comentario(db.Model):
     __tablename__ = 'comentarios'

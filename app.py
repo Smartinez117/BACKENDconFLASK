@@ -24,10 +24,20 @@ import os
 
 load_dotenv()
 
-
-
-
 app = Flask(__name__)
+
+def cerrar_sesion():
+    """
+    Cierra la sesión de base de datos de forma segura.
+    """
+    try:
+        db.session.remove()  # limpia y cierra la sesión actual
+    except Exception as e:
+        print(f"Error al cerrar la sesión: {e}")
+        
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    cerrar_sesion()
 
 # Inicializar Firebase
 cred = credentials.Certificate("firebase/firebase-credentials.json")
