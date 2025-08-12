@@ -94,11 +94,13 @@ class Notificacion(db.Model):
     __tablename__ = 'notificaciones'
     id = db.Column(db.Integer, primary_key=True)
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    id_publicacion = db.Column(db.Integer, db.ForeignKey('publicaciones.id'), nullable=True)
     titulo = db.Column(db.Text)
     descripcion = db.Column(db.Text)
     tipo = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime(timezone=True), nullable=False)
     leido = db.Column(db.Boolean, default=False)
+    
     
     
 class Reporte(db.Model):
