@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from core.models import db, Comentario, Publicacion, Notificacion,Usuario
-from notificaciones.services import crear_notificacion
+from components.notificaciones.services import crear_notificacion
 import pytz
 
 zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")

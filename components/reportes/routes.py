@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from reportes.services import (
+from components.reportes.services import (
     crear_reporte,
     obtener_reportes_por_publicacion,
     obtener_reportes_por_usuario,

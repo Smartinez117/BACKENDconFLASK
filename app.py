@@ -9,16 +9,16 @@ from datetime import datetime
 from flask_migrate import Migrate
 from core.models import db, Usuario
 from auth.routes import auth_bp
-from publicaciones.routes import publicaciones_bp
-from usuarios.routes import usuarios_bp
-from comentarios.routes import comentarios_bp
-from imagenes.routes import imagenes_bp
-from notificaciones.routes import notificaciones_bp
-from reportes.routes import reportes_bp
-from qr.routes import qr_bp
-from pdf.routes import pdf_bp
-from ubicacion.routes import ubicacion_bp
-from etiquetas.routes import etiquetas_bp
+from components.publicaciones.routes import publicaciones_bp
+from components.usuarios.routes import usuarios_bp
+from components.comentarios.routes import comentarios_bp
+from components.imagenes.routes import imagenes_bp
+from components.notificaciones.routes import notificaciones_bp
+from components.reportes.routes import reportes_bp
+from components.qr.routes import qr_bp
+from components.pdf.routes import pdf_bp
+from components.ubicacion.routes import ubicacion_bp
+from components.etiquetas.routes import etiquetas_bp
 from dotenv import load_dotenv
 import os
 

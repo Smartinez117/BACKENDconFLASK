@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from core.models import db, Usuario
-from usuarios.services import actualizar_datos_usuario , get_usuario,filtrar_usuarios_service, obtener_usuario_por_uid
+from components.usuarios.services import actualizar_datos_usuario , get_usuario,filtrar_usuarios_service, obtener_usuario_por_uid
 #agregado de import
 from firebase_admin import auth
 usuarios_bp = Blueprint('usuarios', __name__)

@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from qr.services import generar_qr
+from components.qr.services import generar_qr
 
 qr_bp = Blueprint("qr", __name__)
 

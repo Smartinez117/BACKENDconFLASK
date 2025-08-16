@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, g
-from comentarios.services import (
+from components.comentarios.services import (
     crear_comentario,
     obtener_comentarios_por_publicacion,
     obtener_comentario_por_su_id,

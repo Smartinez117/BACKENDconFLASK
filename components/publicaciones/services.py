@@ -1,6 +1,6 @@
 from flask import jsonify
-from comentarios.services import eliminar_comentario
-from imagenes.services import eliminar_imagen
+from components.comentarios.services import eliminar_comentario
+from components.imagenes.services import eliminar_imagen
 from core.models import Comentario, db, Publicacion, Imagen, Etiqueta, PublicacionEtiqueta
 from datetime import datetime, timezone
 from math import radians

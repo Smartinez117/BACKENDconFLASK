@@ -109,7 +109,7 @@ def generar_pdf_publicacion(id_publicacion):
     c.drawImage(ImageReader(qr_img), width - qr_size - 10, 20, width=qr_size, height=qr_size)
 
     # Logo (abajo izquierda)
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # Sube a BACKENDconFLASK
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..\.."))  # Sube a BACKENDconFLASK
     logo_path = os.path.join(base_dir, "Logo.jpg")  # Asegúrate que esté aquí
 
     
@@ -117,7 +117,7 @@ def generar_pdf_publicacion(id_publicacion):
         try:
             logo_reader = ImageReader(logo_path)
             c.drawImage(logo_reader, 30, 30, width=80, height=80, preserveAspectRatio=True, mask='auto')
-            print("✅ Logo dibujado correctamente.")
+            #print("✅ Logo dibujado correctamente.")
         except Exception as e:
             print("❌ Error dibujando el logo:", e)
     else:

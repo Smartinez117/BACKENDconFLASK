@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from imagenes.services import obtener_todas_las_imagenes, obtener_imagenes_por_publicacion,crear_imagen,eliminar_imagen
+from components.imagenes.services import obtener_todas_las_imagenes, obtener_imagenes_por_publicacion,crear_imagen,eliminar_imagen
 
 imagenes_bp = Blueprint("imagenes", __name__)
 

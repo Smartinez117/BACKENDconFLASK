@@ -1,5 +1,5 @@
 from flask import Blueprint, send_file
-from pdf.services import generar_pdf_publicacion
+from components.pdf.services import generar_pdf_publicacion
 
 pdf_bp = Blueprint("pdf", __name__)
 

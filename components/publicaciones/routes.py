@@ -1,6 +1,6 @@
 from auth.services import require_auth
 from flask import Blueprint, request, jsonify, g
-from publicaciones.services import (
+from components.publicaciones.services import (
     obtener_publicacion_por_id,
     obtener_publicaciones_filtradas,
     obtener_todas_publicaciones,
@@ -9,7 +9,7 @@ from publicaciones.services import (
     eliminar_publicacion,
     normalizar_texto,
 )
-from publicaciones.services import subir_imagen_a_cloudinary
+from components.publicaciones.services import subir_imagen_a_cloudinary
 
 publicaciones_bp = Blueprint("publicaciones", __name__)
 

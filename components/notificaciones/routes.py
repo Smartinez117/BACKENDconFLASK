@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify , g
-from notificaciones.services import (
+from components.notificaciones.services import (
     crear_notificacion,
     obtener_notificaciones_por_usuario,
     obtener_todas,
