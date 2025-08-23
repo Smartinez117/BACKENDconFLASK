@@ -21,6 +21,8 @@ from components.ubicacion.routes import ubicacion_bp
 from components.etiquetas.routes import etiquetas_bp
 from dotenv import load_dotenv
 import os
+#
+from util import socketio
 
 load_dotenv()
 
@@ -72,7 +74,9 @@ app.register_blueprint(pdf_bp)
 app.register_blueprint(ubicacion_bp)
 app.register_blueprint(etiquetas_bp, url_prefix='/api/etiquetas')
 # MAIN
-
+# Inicializas socketio con la app
+socketio.init_app(app)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+

@@ -7,6 +7,8 @@ from components.notificaciones.services import (
     eliminar_notificacion
 )
 from auth.services import require_auth
+#
+from util import socketio
 notificaciones_bp = Blueprint("notificaciones", __name__)
 
 @notificaciones_bp.route("/notificaciones", methods=["POST"])
@@ -37,3 +39,11 @@ def marcar_leida(id_noti):
 @notificaciones_bp.route("/notificaciones/<int:id_noti>", methods=["DELETE"])
 def eliminar(id_noti):
     return jsonify(eliminar_notificacion(id_noti)), 200
+
+#notificaciones en tiempo real
+@notificaciones_bp.route("/notifications", methods=["POST"])
+def crear_con_socket():
+    data = request.get_json()
+    # lógica para crear notificación -->
+    socketio.emit("nueva_notificacion", {"mensaje": "Nueva notificación"})
+    return jsonify({"status": "ok"}), 200
