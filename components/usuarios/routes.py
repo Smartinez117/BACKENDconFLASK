@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from core.models import db, Usuario
 from components.usuarios.services import actualizar_datos_usuario , get_usuario,filtrar_usuarios_service, obtener_usuario_por_uid
 from firebase_admin import auth
+from auth.services import require_auth
 usuarios_bp = Blueprint('usuarios', __name__)
 
 #Endpoint para actualizar información del usuario
@@ -22,6 +23,7 @@ def obtener_usuario_por_id(id_usuario):
 
 #Endpoint para poder banear usuarios
 @usuarios_bp.route('/api/<int:id_usuario>/ban', methods=['PATCH'])
+@require_auth
 def banear_usuario(id_usuario):
 
     usuario = Usuario.query.get_or_404(id_usuario)
@@ -41,6 +43,7 @@ def banear_usuario(id_usuario):
 
 #Endpoint para desbanear usuarios
 @usuarios_bp.route('/api/<int:id_usuario>/desban', methods=['PATCH'])
+@require_auth
 def desbanear_usuario(id_usuario):
     # Buscar usuario en tu base de datos
     usuario = Usuario.query.get_or_404(id_usuario)
