@@ -1,6 +1,9 @@
 from flask import jsonify
 from core.models import Usuario,db
-from datetime import datetime
+from datetime import datetime,timezone
+import pytz
+
+zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
 
 def actualizar_datos_usuario(id_usuario,data):
     
@@ -14,7 +17,7 @@ def actualizar_datos_usuario(id_usuario,data):
     usuario.telefono_numero_local = data.get('telefono_numero_local', usuario.telefono_numero_local)
     usuario.descripcion = data.get('descripcion', usuario.descripcion)
     usuario.rol = data.get('rol',usuario.rol)
-    usuario.fecha_modificacion = datetime.utcnow()
+    usuario.fecha_modificacion = datetime.now(timezone.utc)
 
     db.session.commit()
        
@@ -31,7 +34,7 @@ def get_usuario (id_usuario):
         'email': usuario.email,
         'foto_perfil_url':usuario.foto_perfil_url,
         'rol': usuario.rol,
-        'fecha_registro': usuario.fecha_registro,
+        'fecha_registro': usuario.fecha_registro.astimezone(zona_arg).isoformat() if usuario.fecha_registro else None,
         'telefono_pais':usuario.telefono_pais,
         'telefono_numero_local':usuario.telefono_numero_local,
         'descripcion': usuario.descripcion
@@ -68,7 +71,7 @@ def filtrar_usuarios_service(filtros):
             "telefono_pais": u.telefono_pais,
             "telefono_numero_local": u.telefono_numero_local,
             "descripcion": u.descripcion,
-            "fecha_registro": u.fecha_registro.isoformat() if u.fecha_registro else None
+            "fecha_registro": u.fecha_registro.astimezone(zona_arg).isoformat() if u.fecha_registro else None
         }
         for u in usuarios
     ]
@@ -87,7 +90,7 @@ def obtener_usuario_por_uid(uid):
         'email': usuario.email,
         'foto_perfil_url': usuario.foto_perfil_url,
         'rol': usuario.rol,
-        'fecha_registro': usuario.fecha_registro,
+        'fecha_registro': usuario.fecha_registro.astimezone(zona_arg).isoformat() if usuario.fecha_registro else None,
         'telefono_pais': usuario.telefono_pais,
         'telefono_numero_local': usuario.telefono_numero_local,
         'descripcion': usuario.descripcion

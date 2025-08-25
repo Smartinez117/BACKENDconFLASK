@@ -7,11 +7,13 @@ from components.reportes.services import (
     obtener_usuarios_con_posts_reportados,
     eliminar_reporte
 )
+from auth.services import require_auth
 
 reportes_bp = Blueprint("reportes", __name__)
 
 # Crear reporte
 @reportes_bp.route("/reportes", methods=["POST"])
+@require_auth
 def crear():
     data = request.get_json()
     return crear_reporte(data)

@@ -1,5 +1,7 @@
 from core.models import db, Reporte, Publicacion, Usuario
-from datetime import datetime
+from datetime import datetime,timezone
+import pytz
+zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
 
 def crear_reporte(data):
     try:
@@ -8,7 +10,7 @@ def crear_reporte(data):
             id_usuario=data['id_usuario'],
             descripcion=data.get('descripcion'),
             tipo=data.get('tipo'),
-            fecha_creacion=datetime.utcnow()
+            fecha_creacion=datetime.now(timezone.utc)
         )
         db.session.add(nuevo)
         db.session.commit()

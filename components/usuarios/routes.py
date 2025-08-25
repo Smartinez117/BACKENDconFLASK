@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from core.models import db, Usuario
 from components.usuarios.services import actualizar_datos_usuario , get_usuario,filtrar_usuarios_service, obtener_usuario_por_uid
-#agregado de import
 from firebase_admin import auth
+from auth.services import require_auth
 usuarios_bp = Blueprint('usuarios', __name__)
 
 #Endpoint para actualizar información del usuario
@@ -23,6 +23,7 @@ def obtener_usuario_por_id(id_usuario):
 
 #Endpoint para poder banear usuarios
 @usuarios_bp.route('/api/<int:id_usuario>/ban', methods=['PATCH'])
+@require_auth
 def banear_usuario(id_usuario):
 
     usuario = Usuario.query.get_or_404(id_usuario)
@@ -30,12 +31,39 @@ def banear_usuario(id_usuario):
     if usuario.rol == "admin":
         return jsonify({"error": "No se puede banear a otro administrador"}), 403
 
-    usuario.rol = "baneado"
-    db.session.commit()
+    try:
+        # Deshabilitar el usuario en Firebase
+        auth.update_user(usuario.firebase_uid, disabled=True)
+        usuario.rol = "baneado"
+        db.session.commit()
 
-    return jsonify({"mensaje": f"Usuario {usuario.nombre} baneado correctamente"}), 200
+        return jsonify({"mensaje": f"Usuario {usuario.nombre} baneado correctamente"}), 200
+    except Exception as e:
+        return jsonify({"error": f"No se pudo banear al usuario: {str(e)}"}), 500
 
+#Endpoint para desbanear usuarios
+@usuarios_bp.route('/api/<int:id_usuario>/desban', methods=['PATCH'])
+@require_auth
+def desbanear_usuario(id_usuario):
+    # Buscar usuario en tu base de datos
+    usuario = Usuario.query.get_or_404(id_usuario)
 
+    # Si ya es admin, no debería estar baneado pero controlamos igual
+    if usuario.rol == "admin":
+        return jsonify({"error": "Los administradores no pueden ser baneados/desbaneados"}), 403
+
+    try:
+        # Rehabilitar al usuario en Firebase
+        auth.update_user(usuario.firebase_uid, disabled=False)
+
+        # Actualizar el rol en tu DB local
+        usuario.rol = "usuario"
+        db.session.commit()
+
+        return jsonify({"mensaje": f"Usuario {usuario.nombre} desbaneado correctamente"}), 200
+    
+    except Exception as e:
+        return jsonify({"error": f"No se pudo desbanear al usuario: {str(e)}"}), 500
 
 #Endpoint para filtrar usuarios por mail, nombre , telefono y rol
 @usuarios_bp.route('/api/usuarios', methods=['GET'])
