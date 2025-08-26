@@ -76,5 +76,5 @@ def reporte_to_dict(r):
         "id_usuario": r.id_usuario,
         "descripcion": r.descripcion,
         "tipo": r.tipo,
-        "fecha_creacion": r.fecha_creacion.isoformat()
+        "fecha_creacion": r.fecha_creacion.astimezone(zona_arg).isoformat() if r.fecha_creacion else None
     }
