@@ -18,6 +18,16 @@ class Usuario(db.Model):
     descripcion = db.Column(db.Text)
     publicaciones = db.relationship('Publicacion', backref='usuario', lazy=True)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "email": self.email,
+            "rol": self.rol,
+            "fecha_registro": self.fecha_registro.isoformat() if self.fecha_registro else None,
+            "foto_perfil_url": self.foto_perfil_url
+        }
+
 
 class Etiqueta(db.Model):
     __tablename__ = 'etiquetas'

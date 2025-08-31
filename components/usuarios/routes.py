@@ -64,23 +64,6 @@ def desbanear_usuario(id_usuario):
     
     except Exception as e:
         return jsonify({"error": f"No se pudo desbanear al usuario: {str(e)}"}), 500
-
-#Endpoint para filtrar usuarios por mail, nombre , telefono y rol
-@usuarios_bp.route('/api/usuarios', methods=['GET'])
-def filtrar_usuarios():
-    filtros = {
-        "email": request.args.get('email'),
-        "nombre": request.args.get('nombre'),
-        "telefono_pais": request.args.get('telefono_pais'),
-        "telefono_numero_local": request.args.get('telefono_numero_local'),
-        "rol": request.args.get('rol')
-    }
-
-    try:
-        usuarios_filtrados = filtrar_usuarios_service(filtros)
-        return jsonify(usuarios_filtrados), 200
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
     
 @usuarios_bp.route('/usuario/<int:id_usuario>', methods=['DELETE'])
 def eliminar_usuario(id_usuario):
@@ -123,3 +106,47 @@ def user_config():
 
     except Exception as e:
         return jsonify({'error': 'Token inválido o expirado', 'detalle': str(e)}), 401
+    
+#Endpoints para el panel administrativo:
+
+@usuarios_bp.route("/api/usuarios", methods=["GET"])
+def get_usuarios():
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)
+    search = request.args.get("search", "", type=str)
+
+    query = Usuario.query
+
+    if search:
+        query = query.filter(
+            (Usuario.nombre.ilike(f"%{search}%")) |
+            (Usuario.email.ilike(f"%{search}%"))
+        )
+
+    pagination = query.order_by(Usuario.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+
+    data = [u.to_dict() for u in pagination.items]
+
+    return jsonify({
+        "usuarios": data,
+        "total": pagination.total,
+        "page": pagination.page,
+        "pages": pagination.pages
+    })
+
+#Endpoint para filtrar usuarios por mail, nombre , telefono y rol
+"""@usuarios_bp.route('/api/usuarios', methods=['GET'])
+def filtrar_usuarios():
+    filtros = {
+        "email": request.args.get('email'),
+        "nombre": request.args.get('nombre'),
+        "telefono_pais": request.args.get('telefono_pais'),
+        "telefono_numero_local": request.args.get('telefono_numero_local'),
+        "rol": request.args.get('rol')
+    }
+
+    try:
+        usuarios_filtrados = filtrar_usuarios_service(filtros)
+        return jsonify(usuarios_filtrados), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400"""
