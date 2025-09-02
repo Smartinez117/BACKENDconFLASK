@@ -297,3 +297,5 @@ def subir_imagen_a_cloudinary(file):
     except Exception as e:
         print("Error al subir imagen:", str(e))
         return None
+
+#funcion usada en socket para la parte de notificaciones

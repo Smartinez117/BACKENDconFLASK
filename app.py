@@ -23,7 +23,6 @@ from dotenv import load_dotenv
 import os
 #
 from util import socketio
-
 load_dotenv()
 
 app = Flask(__name__)
@@ -54,7 +53,6 @@ db.init_app(app)
 migrate = Migrate(app, db)
 frontend_url = os.getenv("FRONTEND_URL", "*")  # * como fallback
 CORS(app, origins=[frontend_url])
-
 
 # Configuración a cloudinary
 # Cloudinary

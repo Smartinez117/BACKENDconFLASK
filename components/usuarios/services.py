@@ -95,3 +95,4 @@ def obtener_usuario_por_uid(uid):
         'telefono_numero_local': usuario.telefono_numero_local,
         'descripcion': usuario.descripcion
     }
+

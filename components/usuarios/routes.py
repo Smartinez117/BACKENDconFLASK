@@ -1,9 +1,13 @@
 from flask import Blueprint, request, jsonify
 from core.models import db, Usuario
 from components.usuarios.services import actualizar_datos_usuario , get_usuario,filtrar_usuarios_service, obtener_usuario_por_uid
-from firebase_admin import auth
+from firebase_admin import auth 
 from auth.services import require_auth
+from flask_socketio import SocketIO, disconnect
+from util import socketio
+
 usuarios_bp = Blueprint('usuarios', __name__)
+
 
 #Endpoint para actualizar información del usuario
 @usuarios_bp.route('/usuario/<int:id_usuario>', methods=['PATCH'])
@@ -150,3 +154,46 @@ def filtrar_usuarios():
         return jsonify(usuarios_filtrados), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400"""
+    
+#diccionario de usuarios conectados
+userconnected = {}
+    
+#funcion para autenticar a los usuarios desde el socket
+@socketio.on('connect', namespace='/connection')
+def on_connect(auth_data):
+    token = auth_data.get('token') if auth_data else None
+    if not token:
+        disconnect()
+        return
+
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token.get('uid')
+        name= decoded_token.get('name')
+        sid = request.sid #<-- identificador unico de inicio de sesion del socket para cada conexion de cada user
+        print(uid,name,sid)
+        if not uid:
+            disconnect()
+            return
+        usuarioConectado(uid,name,sid)
+    except Exception:
+        disconnect()
+
+#marcar como desconectado a los usuarios que se desconectan
+@socketio.on('disconnect', namespace='/connection')
+def on_disconnect():
+    sid = request.sid
+    usuarioDesconectado(sid)
+
+#agrego a cada user con su uid,name y sid a un diccionario de user connected
+def usuarioConectado(uid,name,sid):
+    userconnected[sid]= {
+        "uid": uid,
+        "name": name
+        }
+    print('usuarios conectados:',userconnected)
+    
+
+def usuarioDesconectado(sid):
+    userconnected.pop(sid,None)
+    print('usuarios conectados:',userconnected)

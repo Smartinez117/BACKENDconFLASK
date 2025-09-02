@@ -9,3 +9,4 @@ with app.app_context():
     db.session.add_all(etiquetas)
     db.session.commit()
     print("Etiquetas agregadas con éxito")
+

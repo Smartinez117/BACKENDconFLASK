@@ -9,6 +9,10 @@ from components.notificaciones.services import (
 from auth.services import require_auth
 #
 from util import socketio
+from ..usuarios.routes import userconnected  #importamos la libreria de usuarios conectados
+#importaciones para las pruebas
+#importaciones para las pruebas
+
 notificaciones_bp = Blueprint("notificaciones", __name__)
 
 @notificaciones_bp.route("/notificaciones", methods=["POST"])
@@ -41,9 +45,37 @@ def eliminar(id_noti):
     return jsonify(eliminar_notificacion(id_noti)), 200
 
 #notificaciones en tiempo real
-@notificaciones_bp.route("/notifications", methods=["POST"])
+@notificaciones_bp.route("/notificacion", methods=["POST"])
 def crear_con_socket():
     data = request.get_json()
     # lógica para crear notificación -->
     socketio.emit("nueva_notificacion", {"mensaje": "Nueva notificación"})
     return jsonify({"status": "ok"}), 200
+
+#datos de prueba para la part de notificaicones-------------------------------------------------------
+notification = {
+            "titulo": "lautaro stuve comento tu publicacion",
+            "descripcion": "comento en 'perro marron perdido",
+            "id_publicacion" : "76", # para redirigir al user a la publicacion si quiere ver quien corno comento algo 
+            "id_notificacion": "12"  #para marcarla como leida aunque en esta prueba aun no tengo defina esa funcion para el front
+        }
+mensaje = {
+  "titulo": "lautaro stuve comento tu publicacion",
+  "descripcion": "comento en 'perro marron perdido'"
+}
+uid= 'abve72UPGJZWfSfvx3KGBqd0UGf1'
+
+
+@socketio.on('connect', namespace='/notificacion/'+uid)
+def on_connect():
+    print('Cliente conectado al namespace')
+
+@notificaciones_bp.route("/pruebanot", methods=["POST"])
+def crear_con_socket1():
+    data = request.get_json()
+    # lógica para crear notificación -->
+    #notificar(notification)
+    socketio.emit('notificacion',notification,namespace='/notificacion/'+uid) #una vez
+    return jsonify({"status": "ok"}), 200
+
+#datos de prueba para la part de notificaicones-------------------------------------------------------
