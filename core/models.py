@@ -58,6 +58,7 @@ class Publicacion(db.Model):
     etiquetas = db.relationship('Etiqueta', secondary='publicacion_etiqueta', back_populates='publicaciones')
     imagenes = db.relationship('Imagen', backref='publicacion', lazy='select')
     localidad = db.relationship("Localidad", backref="publicaciones")
+    reportes = db.relationship('Reporte',backref='publicacion',cascade="all, delete-orphan",passive_deletes=True)
 
 class Comentario(db.Model):
     __tablename__ = 'comentarios'
@@ -116,8 +117,8 @@ class Notificacion(db.Model):
 class Reporte(db.Model):
     __tablename__ = 'reportes'
     id = db.Column(db.Integer, primary_key=True)
-    id_publicacion = db.Column(db.Integer, db.ForeignKey('publicaciones.id'), nullable=False)
-    id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    id_publicacion = db.Column(db.Integer, db.ForeignKey('publicaciones.id',ondelete = 'CASCADE'), nullable=False)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete="CASCADE"), nullable=False)
     descripcion = db.Column(db.Text)
     tipo = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime(timezone=True), nullable=False)
