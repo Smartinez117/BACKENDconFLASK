@@ -5,6 +5,7 @@ from firebase_admin import auth
 from auth.services import require_auth
 from flask_socketio import SocketIO, disconnect
 from util import socketio
+from core.models import db, Publicacion  # importa tu modelo de publicaciones
 
 usuarios_bp = Blueprint('usuarios', __name__)
 
@@ -197,3 +198,22 @@ def usuarioConectado(uid,name,sid):
 def usuarioDesconectado(sid):
     userconnected.pop(sid,None)
     print('usuarios conectados:',userconnected)
+
+
+
+
+# Endpoint para obtener publicaciones de un usuario por su id
+@usuarios_bp.route('/usuarios/<int:idUsuario>/publicaciones', methods=['GET'])
+def obtener_publicaciones_usuario(idUsuario):
+    try:
+        usuario = Usuario.query.get_or_404(idUsuario)
+
+        publicaciones = (
+            Publicacion.query.filter_by(id_usuario=idUsuario)
+            .order_by(Publicacion.id.desc())
+            .all()
+        )
+
+        return jsonify([pub.to_dict() for pub in publicaciones]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400

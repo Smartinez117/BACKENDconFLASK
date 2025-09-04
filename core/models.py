@@ -60,6 +60,22 @@ class Publicacion(db.Model):
     localidad = db.relationship("Localidad", backref="publicaciones")
     reportes = db.relationship('Reporte',backref='publicacion',cascade="all, delete-orphan",passive_deletes=True)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "id_usuario": self.id_usuario,
+            "id_locacion": self.id_locacion,
+            "titulo": self.titulo,
+            "categoria": self.categoria,
+            "descripcion": self.descripcion,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "fecha_modificacion": self.fecha_modificacion.isoformat() if self.fecha_modificacion else None,
+            "coordenadas": self.coordenadas,
+            "etiquetas": [etiqueta.nombre for etiqueta in self.etiquetas],  # asumiendo que `Etiqueta` tiene `nombre`
+            "imagenes": [img.url for img in self.imagenes],  # asumiendo que `Imagen` tiene `url`
+            "localidad": self.localidad.nombre if self.localidad else None
+        }
+
 class Comentario(db.Model):
     __tablename__ = 'comentarios'
     id = db.Column(db.Integer, primary_key=True)
