@@ -1,6 +1,8 @@
 import datetime
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Numeric
+import uuid
+from slugify import slugify
 
 db = SQLAlchemy()
 
@@ -16,7 +18,14 @@ class Usuario(db.Model):
     telefono_pais = db.Column(db.Text)
     telefono_numero_local = db.Column(db.BigInteger)
     descripcion = db.Column(db.Text)
+    slug = db.Column(db.String(150), unique=True, nullable=False)
     publicaciones = db.relationship('Publicacion', backref='usuario', lazy=True)
+
+    def generar_slug(self):
+        """Genera un slug único basado en el nombre del usuario."""
+        base_slug = slugify(self.nombre)
+        unique_suffix = uuid.uuid4().hex[:6]  # ej: "772123"
+        self.slug = f"{base_slug}{unique_suffix}"
 
     def to_dict(self):
         return {
@@ -25,7 +34,8 @@ class Usuario(db.Model):
             "email": self.email,
             "rol": self.rol,
             "fecha_registro": self.fecha_registro.isoformat() if self.fecha_registro else None,
-            "foto_perfil_url": self.foto_perfil_url
+            "foto_perfil_url": self.foto_perfil_url,
+            "slug": self.slug
         }
 
 

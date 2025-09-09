@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from core.models import db, Usuario
-from components.usuarios.services import actualizar_datos_usuario , get_usuario,filtrar_usuarios_service, obtener_usuario_por_uid
+from components.usuarios.services import actualizar_datos_usuario , get_usuario,filtrar_usuarios_service, obtener_usuario_por_uid, obtener_usuario_por_slug
 from firebase_admin import auth 
 from auth.services import require_auth
 from flask_socketio import SocketIO, disconnect
@@ -25,6 +25,14 @@ def actualizar_usuario(id_usuario):
 def obtener_usuario_por_id(id_usuario):
    usuario = get_usuario(id_usuario) 
    return jsonify(usuario), 200
+
+# Endpoint para obtener usuario por slug
+@usuarios_bp.route('/usuario/slug/<string:slug>', methods=['GET'])
+def obtener_usuario_por_slug_route(slug):
+    usuario = obtener_usuario_por_slug(slug)
+    if not usuario:
+        return jsonify({'error': 'Usuario no encontrado'}), 404
+    return jsonify(usuario), 200
 
 #Endpoint para poder banear usuarios
 @usuarios_bp.route('/api/<int:id_usuario>/ban', methods=['PATCH'])

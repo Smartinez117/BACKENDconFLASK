@@ -37,9 +37,31 @@ def get_usuario (id_usuario):
         'fecha_registro': usuario.fecha_registro.astimezone(zona_arg).isoformat() if usuario.fecha_registro else None,
         'telefono_pais':usuario.telefono_pais,
         'telefono_numero_local':usuario.telefono_numero_local,
-        'descripcion': usuario.descripcion
+        'descripcion': usuario.descripcion,
+        'slug': usuario.slug
 
     }
+
+def obtener_usuario_por_slug(slug):
+    usuario = Usuario.query.filter_by(slug=slug).first()
+
+    if not usuario:
+        return None
+
+    return {
+        'id': usuario.id,
+        'firebase_uid': usuario.firebase_uid,
+        'nombre': usuario.nombre,
+        'email': usuario.email,
+        'foto_perfil_url': usuario.foto_perfil_url,
+        'rol': usuario.rol,
+        'fecha_registro': usuario.fecha_registro.astimezone(zona_arg).isoformat() if usuario.fecha_registro else None,
+        'telefono_pais': usuario.telefono_pais,
+        'telefono_numero_local': usuario.telefono_numero_local,
+        'descripcion': usuario.descripcion,
+        'slug': usuario.slug
+    }
+
 
 def filtrar_usuarios_service(filtros):
     query = Usuario.query
@@ -93,6 +115,7 @@ def obtener_usuario_por_uid(uid):
         'fecha_registro': usuario.fecha_registro.astimezone(zona_arg).isoformat() if usuario.fecha_registro else None,
         'telefono_pais': usuario.telefono_pais,
         'telefono_numero_local': usuario.telefono_numero_local,
-        'descripcion': usuario.descripcion
+        'descripcion': usuario.descripcion,
+        'slug': usuario.slug
     }
 
