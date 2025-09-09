@@ -123,10 +123,6 @@ def subir_imagenes():
 def publicaciones_usuario_actual():
     usuario = g.usuario_actual
 
-    # Si es admin, devuelve todas las publicaciones
-    if usuario.rol == 'admin':
-        publicaciones = obtener_publicaciones_filtradas()
-    else:
-        publicaciones = obtener_publicaciones_filtradas(id_usuario=usuario.id)
+    publicaciones = obtener_publicaciones_filtradas(id_usuario=usuario.id)
 
     return jsonify(publicaciones), 200
