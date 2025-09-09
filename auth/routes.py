@@ -43,7 +43,7 @@ def login():
             db.session.add(nuevo_usuario)
             db.session.commit()
 
-        return jsonify({"message": "Usuario autenticado correctamente"}), 200
+        return jsonify({"idLocal": usuario.id, "message": "Usuario autenticado correctamente"}), 200
 
     except Exception as e:
         print("Error:", e)
