@@ -1,0 +1,76 @@
+[MASTER]
+# Ignorar carpetas innecesarias
+ignore=venv,migrations,__pycache__,tests,static,templates
+jobs=1
+extension-pkg-whitelist=
+load-plugins=pylint_flask
+
+[MESSAGES CONTROL]
+# Podés desactivar advertencias muy molestas o redundantes
+disable=
+    C0114,  # Missing module docstring
+    C0115,  # Missing class docstring
+    C0116,  # Missing function docstring
+    R0903,  # Too few public methods (para models simples de SQLAlchemy)
+    W0511   # TODO notes (permite dejar comentarios TODO sin warning)
+    # Se activan advertencias útiles para Flask y seguridad
+    # W0702: No except handler
+    # W0703: Catching too general exception
+    # W0613: Unused argument
+    # W0603: Global statement
+    # W1201: Logging not lazy
+    # W1510: Print statement used
+
+[REPORTS]
+output-format=parseable
+reports=no
+score=yes
+
+[FORMAT]
+# Reglas de estilo
+max-line-length=120
+indent-string='    '
+
+[DESIGN]
+# Controlar complejidad
+max-args=5
+max-attributes=10
+max-locals=15
+max-returns=6
+max-branches=12
+max-statements=50
+
+[NAMING]
+# Reglas de nombres
+variable-rgx=[a-z_][a-z0-9_]{2,30}$
+function-rgx=[a-z_][a-z0-9_]{2,30}$|test_.*
+method-rgx=[a-z_][a-z0-9_]{2,30}$
+class-rgx=[A-Z][a-zA-Z0-9]+$
+const-rgx=([A-Z_][A-Z0-9_]*)|(__.*__)
+argument-rgx=[a-z_][a-z0-9_]{2,30}$
+
+[IMPORTS]
+# Prohibir imports comodín tipo "from flask import *"
+deprecated-modules=flask.ext
+known-standard-library=flask
+known-third-party=flask_sqlalchemy,sqlalchemy,flask_restful,flask_login
+
+[TYPECHECK]
+# Ignorar warnings de librerías externas que no tienen hints
+ignored-modules=flask,flask_sqlalchemy,flask_restful,flask_login,flask_cors
+
+[LOGGING]
+# Reglas de logging (mejor que usar print en prod)
+logging-modules=logging
+
+[SIMILARITIES]
+# Permite algo de duplicación (útil en endpoints que se parecen mucho)
+min-similarity-lines=6
+
+[VARIABLES]
+# No dar warning por variables no usadas en funciones lambda
+dummy-variables-rgx=_$|dummy
+
+[STRING]
+# Usar comillas simples o dobles de forma consistente
+check-str-concat-over-line-jumps=yes
