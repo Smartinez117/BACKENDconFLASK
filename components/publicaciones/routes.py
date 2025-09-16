@@ -16,7 +16,8 @@ publicaciones_bp = Blueprint("publicaciones", __name__)
 # POST
 @publicaciones_bp.route("/publicaciones", methods=["POST"])
 @require_auth
-def crear():  # 👈 acá se inyecta el usuario autenticado
+def crear():  # acá se inyecta el usuario autenticado
+    """Crea una nueva publicación con los datos recibidos y el usuario autenticado."""
     data = request.get_json()
     data['id_usuario'] = g.usuario_actual.id
     return crear_publicacion(data, g.usuario_actual)
@@ -27,12 +28,14 @@ def crear():  # 👈 acá se inyecta el usuario autenticado
 # Obtener una publicación por ID
 @publicaciones_bp.route('/publicaciones/<int:id_publicacion>', methods=['GET'])
 def get_publicacion(id_publicacion):
+    """Obtiene una publicación por su ID."""
     publicacion = obtener_publicacion_por_id(id_publicacion)
     return jsonify(publicacion), 200
 
 # Obtener todas las publicaciones para el home
 @publicaciones_bp.route('/publicaciones', methods=['GET'])
 def get_publicaciones():
+    """Obtiene todas las publicaciones para el home."""
     publicacion = obtener_todas_publicaciones()
     return jsonify(publicacion), 200
 
@@ -40,6 +43,7 @@ def get_publicaciones():
 #GET /publicaciones/filtrar?lat=-34.60&lon=-58.38&radio=10&categoria=perdido&etiquetas=marron,grande&fecha_min=2025-07-01&fecha_max=2025-07-08&id_usuario=1
 @publicaciones_bp.route('/publicaciones/filtrar', methods=['GET'])
 def get_publicaciones_filtradas():
+    """Obtiene publicaciones filtradas por ubicación, categoría, etiquetas, fechas o usuario."""
     try:
         lat = request.args.get('lat')
         lon = request.args.get('lon')
@@ -81,6 +85,8 @@ def get_publicaciones_filtradas():
 # PATCH
 @publicaciones_bp.route('/publicaciones/<int:id_publicacion>', methods=['PATCH'])
 def actualizar(id_publicacion):
+    """Actualiza una publicación existente por su ID."""
+    data = request.get_json()
     data = request.get_json()
     try:
         actualizar_publicacion(id_publicacion, data)
@@ -93,6 +99,7 @@ def actualizar(id_publicacion):
 #DELETE
 @publicaciones_bp.route('/publicaciones/<int:id_publicacion>', methods=['DELETE'])
 def borrar_publicacion(id_publicacion):
+    """Elimina una publicación por su ID."""
     try:
         eliminar_publicacion(id_publicacion)
         return jsonify({'mensaje': 'Publicación eliminada correctamente'}), 200
@@ -101,6 +108,7 @@ def borrar_publicacion(id_publicacion):
 
 @publicaciones_bp.route('/subir-imagenes', methods=['POST'])
 def subir_imagenes():
+    """Sube una o varias imágenes a Cloudinary y devuelve sus URLs."""
     if 'imagenes' not in request.files:
         return jsonify({"error": "No se encontraron imágenes"}), 400
 
@@ -121,6 +129,7 @@ def subir_imagenes():
 @publicaciones_bp.route("/publicaciones/mis-publicaciones", methods=["GET"])
 @require_auth
 def publicaciones_usuario_actual():
+    """Obtiene todas las publicaciones del usuario autenticado."""
     usuario = g.usuario_actual
 
     publicaciones = obtener_publicaciones_filtradas(id_usuario=usuario.id)

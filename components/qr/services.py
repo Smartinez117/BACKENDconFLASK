@@ -1,8 +1,9 @@
-import qrcode
 from io import BytesIO
 import base64
+import qrcode
 
 def generar_qr(id_publicacion):
+    '''Genera un código QR que apunta a la URL de una publicación específica.'''
     # URL que se codificará en el QR
     url = f"http://localhost:5173/publicacion/{id_publicacion}"
 

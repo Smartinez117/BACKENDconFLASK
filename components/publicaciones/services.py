@@ -16,8 +16,10 @@ import cloudinary.uploader
 import pytz
 zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
 
+import traceback
 
 def crear_publicacion(data, usuario):
+    """Crea una nueva publicación con imágenes y etiquetas."""
     try:
         # Obtener coordenadas como lista [lat, lng]
         coord = data.get('coordenadas')  # ← esto es el objeto que llega del frontend
@@ -62,7 +64,6 @@ def crear_publicacion(data, usuario):
         }, 201
 
     except Exception as e:
-        import traceback
         traceback.print_exc()
         db.session.rollback()
         db.session.close()
@@ -70,6 +71,7 @@ def crear_publicacion(data, usuario):
 
 
 def obtener_publicacion_por_id(id_publicacion):
+    """Obtiene una publicación por su ID, incluyendo imágenes y etiquetas."""
     pub = Publicacion.query.get(id_publicacion)
 
     if not pub:
@@ -95,12 +97,12 @@ def obtener_publicacion_por_id(id_publicacion):
 
 
 def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria=None, etiquetas=None, fecha_min=None, fecha_max=None, id_usuario=None):
+    """Obtiene publicaciones filtradas por ubicación, categoría, etiquetas, fechas o usuario."""
     query = db.session.query(Publicacion).options(
         joinedload(Publicacion.imagenes),  #left join de imagenes y etiquetas
         joinedload(Publicacion.etiquetas),
         joinedload(Publicacion.localidad)
     )
-    
 
     if categoria:
         query = query.filter(func.lower(Publicacion.categoria) == categoria.lower())
@@ -157,6 +159,7 @@ def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria
 
 
 def obtener_todas_publicaciones():
+    """Obtiene todas las publicaciones ordenadas por fecha de creación."""
     try:
         publicaciones = (
             db.session.query(Publicacion)
@@ -190,6 +193,7 @@ def obtener_todas_publicaciones():
 
 
 def actualizar_publicacion(id_publicacion, data):
+    """Actualiza los datos de una publicación existente."""
     publicacion = Publicacion.query.get(id_publicacion)
     if not publicacion:
         raise Exception("Publicación no encontrada")
@@ -217,10 +221,9 @@ def actualizar_publicacion(id_publicacion, data):
         publicacion.etiquetas = etiquetas  # reemplaza directamente
 
     db.session.commit()
-    
-    
 
 def eliminar_publicacion(id_publicacion):
+    """Elimina una publicación y sus comentarios e imágenes asociadas."""
     publicacion = Publicacion.query.get(id_publicacion)
 
     if not publicacion:
@@ -239,6 +242,7 @@ def eliminar_publicacion(id_publicacion):
 # Extras
 
 def normalizar_texto(texto):
+    """Normaliza un texto eliminando acentos y convirtiendo a minúsculas."""
     if not texto:
         return ''
     texto = unicodedata.normalize('NFD', texto)
@@ -247,6 +251,7 @@ def normalizar_texto(texto):
 
 
 def calcular_distancia_km(lat1, lon1, lat2, lon2):
+    """Calcula la distancia en kilómetros entre dos coordenadas geográficas."""
     from math import radians, sin, cos, sqrt, atan2
 
     R = 6371  # km
@@ -270,7 +275,6 @@ def calcular_distancia_km(lat1, lon1, lat2, lon2):
     #}
 
     #response = requests.post(url, data=data, files=files)
-    
     #if response.status_code == 200:
      #   return response.json().get("secure_url")
     #else:
@@ -278,6 +282,7 @@ def calcular_distancia_km(lat1, lon1, lat2, lon2):
       #  return None
 
 def subir_imagen_a_cloudinary(file):
+    """Sube una imagen a Cloudinary y devuelve la URL segura."""
     try:
         # Configura Cloudinary con los valores desde app.config
         cloudinary.config(

@@ -1,4 +1,4 @@
-import firebase_admin
+import os
 import psycopg2
 from firebase_admin import credentials, auth as firebase_auth
 from flask import Flask, request, jsonify
@@ -20,7 +20,7 @@ from components.pdf.routes import pdf_bp
 from components.ubicacion.routes import ubicacion_bp
 from components.etiquetas.routes import etiquetas_bp
 from dotenv import load_dotenv
-import os
+import firebase_admin
 #
 from util import socketio
 load_dotenv()
@@ -35,9 +35,10 @@ def cerrar_sesion():
         db.session.remove()  # limpia y cierra la sesión actual
     except Exception as e:
         print(f"Error al cerrar la sesión: {e}")
-        
+              
 @app.teardown_appcontext
 def shutdown_session(exception=None):
+    """Cierra la sesión de base de datos al finalizar el contexto de la app."""
     cerrar_sesion()
 
 # Inicializar Firebase
@@ -78,4 +79,3 @@ socketio.init_app(app)
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
-

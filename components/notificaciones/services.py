@@ -8,6 +8,7 @@ import pytz
 zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
 
 def crear_notificacion(data):#suponog que aca habria que agregar lo del id de la publicacion
+    """Crea una nueva notificación en la base de datos."""
     try:
         nueva = Notificacion(
             id_usuario=data['id_usuario'],
@@ -26,6 +27,7 @@ def crear_notificacion(data):#suponog que aca habria que agregar lo del id de la
 
 
 def obtener_notificaciones_por_usuario(id_usuario, solo_no_leidas=False):
+    """Obtiene todas las notificaciones de un usuario, opcionalmente solo las no leídas."""
     query = Notificacion.query.filter_by(id_usuario=id_usuario)
     if solo_no_leidas:
         query = query.filter_by(leido=False)
@@ -33,11 +35,13 @@ def obtener_notificaciones_por_usuario(id_usuario, solo_no_leidas=False):
 
 
 def obtener_todas():
+    """Obtiene todas las notificaciones de la base de datos."""
     query = Notificacion.query.order_by(Notificacion.fecha_creacion.desc()).all()
     return [noti_to_dict(n) for n in query]
 
 
 def marcar_notificacion_como_leida(id_noti):
+    """Marca una notificación como leída por su ID."""
     noti = Notificacion.query.get(id_noti)
     if not noti:
         return {"error": "No encontrada"}, 404
@@ -48,6 +52,7 @@ def marcar_notificacion_como_leida(id_noti):
 
 
 def eliminar_notificacion(id_noti):
+    """Elimina una notificación de la base de datos por su ID."""
     noti = Notificacion.query.get(id_noti)
     if not noti:
         return {"error": "No encontrada"}, 404
@@ -57,6 +62,7 @@ def eliminar_notificacion(id_noti):
 
 
 def noti_to_dict(n):
+    """Convierte una notificación a un diccionario serializable."""
     ahora = datetime.now(timezone.utc)
     delta = ahora - n.fecha_creacion
 
@@ -86,6 +92,7 @@ def noti_to_dict(n):
 #en caso de que ocurra el evento de que alguien comenta tu publicacion entonces notificas de inmediato
 #iria de la mano con la funcion de crear notificacion asique la dejare aqui notado 
 def notificar(newnotificacion):
+    """Envía una notificación en tiempo real al usuario correspondiente usando sockets."""
     id_owner = obtener_user_por_idpublicacion(newnotificacion.id_publicacion)
     user = get_usuario(id_owner)
     uid_user= user.firebase_uid
@@ -102,13 +109,15 @@ def notificar(newnotificacion):
 #esta la tendria que importar en la parte que cree para registrar a los user en la carpeta de users
 #voy a reutilizar las funciones que ya estand definidas
 def notificarconectado(iduser,uid_user):
-    notificacionesPendientes = obtener_notificaciones_por_usuario(iduser)
-    if notificacionesPendientes and uid_user in userconnected:
-      for notification in notificacionesPendientes:
-        socketio.emit('notificacion',notification,namespace='/notificacion/'+uid_user) 
+    """Envía todas las notificaciones pendientes a un usuario conectado."""
+    notificaciones_pendientes = obtener_notificaciones_por_usuario(iduser)
+    if notificaciones_pendientes and uid_user in userconnected:
+        for notification in notificaciones_pendientes:
+            socketio.emit('notificacion',notification,namespace='/notificacion/'+uid_user) 
 #esta va a enviar todas las notificaciones pendientes que tiene la cosa incluso podemos enviarlas en orden soo modificando el query
 
 def obtener_user_por_idpublicacion(publicacionID):
+    """Obtiene el ID de usuario dueño de una publicación dado el ID de la publicación."""
     publicacion = Publicacion.query(publicacionID)
     if publicacion:
         return publicacion.id_usuario

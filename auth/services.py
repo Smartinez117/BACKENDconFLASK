@@ -4,6 +4,7 @@ from firebase_admin import auth as firebase_auth
 from core.models import Usuario
 
 def require_auth(f):
+    """Decorador para requerir autenticación con Firebase en rutas protegidas."""
     @wraps(f)
     def decorated(*args, **kwargs):
         auth_header = request.headers.get('Authorization')

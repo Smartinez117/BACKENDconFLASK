@@ -1,12 +1,13 @@
 import datetime
+import uuid
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Numeric
-import uuid
 from slugify import slugify
 
 db = SQLAlchemy()
 
 class Usuario(db.Model):
+    """Modelo de usuario para la base de datos."""
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
     firebase_uid = db.Column(db.String(28), nullable=False)
@@ -28,6 +29,7 @@ class Usuario(db.Model):
         self.slug = f"{base_slug}{unique_suffix}"
 
     def to_dict(self):
+        """Convierte la publicación a un diccionario serializable."""
         return {
             "id": self.id,
             "nombre": self.nombre,
@@ -40,6 +42,7 @@ class Usuario(db.Model):
 
 
 class Etiqueta(db.Model):
+    """Modelo de etiqueta para publicaciones."""
     __tablename__ = 'etiquetas'
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), unique=True, nullable=False)
@@ -48,12 +51,14 @@ class Etiqueta(db.Model):
 
 
 class PublicacionEtiqueta(db.Model):
+    """Tabla de relación entre publicaciones y etiquetas."""
     __tablename__ = 'publicacion_etiqueta'
     id_publicacion = db.Column(db.Integer, db.ForeignKey('publicaciones.id'), primary_key=True)
     id_etiqueta = db.Column(db.Integer, db.ForeignKey('etiquetas.id'), primary_key=True)
 
 
 class Publicacion(db.Model):
+    """Modelo de publicación."""
     __tablename__ = 'publicaciones'
     id = db.Column(db.Integer, primary_key=True)
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
@@ -71,6 +76,7 @@ class Publicacion(db.Model):
     reportes = db.relationship('Reporte',backref='publicacion',cascade="all, delete-orphan",passive_deletes=True)
 
     def to_dict(self):
+        """Convierte la publicación a un diccionario serializable."""
         return {
             "id": self.id,
             "id_usuario": self.id_usuario,
@@ -87,6 +93,7 @@ class Publicacion(db.Model):
         }
 
 class Comentario(db.Model):
+    """Modelo de comentario en publicaciones."""
     __tablename__ = 'comentarios'
     id = db.Column(db.Integer, primary_key=True)
     id_publicacion = db.Column(db.Integer, db.ForeignKey('publicaciones.id'), nullable=False)
@@ -97,12 +104,14 @@ class Comentario(db.Model):
     fecha_modificacion = db.Column(db.DateTime(timezone=True))
 
 class Imagen(db.Model):
+    """Modelo de imagen asociada a publicaciones."""
     __tablename__ = 'imagenes'
     id = db.Column(db.Integer, primary_key=True)
     id_publicacion = db.Column(db.Integer, db.ForeignKey('publicaciones.id'))
     url = db.Column(db.Text)
 
 class Provincia(db.Model):
+    """Modelo de provincia."""
     __tablename__ = 'provincias'
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.Text)
@@ -110,6 +119,7 @@ class Provincia(db.Model):
     longitud = db.Column(Numeric(15, 10))
 
 class Departamento(db.Model):
+    """Modelo de departamento."""
     __tablename__ = 'departamentos'
     id = db.Column(db.Integer, primary_key=True)
     id_provincia = db.Column(db.Integer, db.ForeignKey('provincias.id'))
@@ -118,16 +128,16 @@ class Departamento(db.Model):
     longitud = db.Column(Numeric(15, 10))
 
 class Localidad(db.Model):
+    """Modelo de localidad."""
     __tablename__ = 'localidades'
     id = db.Column(db.BigInteger, primary_key=True)
     nombre = db.Column(db.Text)
     id_departamento = db.Column(db.Integer, db.ForeignKey('departamentos.id'))
     latitud = db.Column(Numeric(15, 10))
     longitud = db.Column(Numeric(15, 10))
-
-    
     
 class Notificacion(db.Model):
+    """Modelo de notificación para usuarios."""
     __tablename__ = 'notificaciones'
     id = db.Column(db.Integer, primary_key=True)
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
@@ -137,10 +147,9 @@ class Notificacion(db.Model):
     tipo = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime(timezone=True), nullable=False)
     leido = db.Column(db.Boolean, default=False)
-    
-    
-    
+     
 class Reporte(db.Model):
+    """Modelo de reporte de publicaciones."""
     __tablename__ = 'reportes'
     id = db.Column(db.Integer, primary_key=True)
     id_publicacion = db.Column(db.Integer, db.ForeignKey('publicaciones.id',ondelete = 'CASCADE'), nullable=False)
@@ -148,3 +157,4 @@ class Reporte(db.Model):
     descripcion = db.Column(db.Text)
     tipo = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime(timezone=True), nullable=False)
+    

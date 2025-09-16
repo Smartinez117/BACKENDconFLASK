@@ -7,6 +7,7 @@ zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
 
 
 def crear_comentario(data):
+    """Crea un nuevo comentario y, si corresponde, una notificación al autor de la publicación."""
     try:
         nuevo = Comentario(
             id_publicacion=data['id_publicacion'],
@@ -41,6 +42,7 @@ def crear_comentario(data):
 
 
 def obtener_comentarios_por_publicacion(id):
+    """Obtiene todos los comentarios asociados a una publicación por su ID."""
     comentarios = Comentario.query.filter_by(id_publicacion=id).all()
     resultado = []
     for c in comentarios:
@@ -48,14 +50,21 @@ def obtener_comentarios_por_publicacion(id):
             "id": c.id,
             "id_usuario": c.id_usuario,
             "descripcion": c.descripcion,
-            "fecha_creacion": c.fecha_creacion.astimezone(zona_arg).isoformat() if c.fecha_creacion else None,
-            "fecha_modificacion": c.fecha_modificacion.astimezone(zona_arg).isoformat() if c.fecha_modificacion else None,
+            "fecha_creacion": (
+                c.fecha_creacion.astimezone(zona_arg).isoformat()
+                if c.fecha_creacion else None
+            ),
+            "fecha_modificacion": (
+                c.fecha_modificacion.astimezone(zona_arg).isoformat()
+                if c.fecha_modificacion else None
+            ),
             "id_anterior": c.id_anterior
         })
     return resultado
 
 
 def obtener_comentario_por_su_id(id_comentario):
+    """Obtiene un comentario específico por su ID."""
     comentario = Comentario.query.get(id_comentario)
 
     if not comentario:
@@ -67,11 +76,18 @@ def obtener_comentario_por_su_id(id_comentario):
         'id_usuario': comentario.id_usuario,
         'id_anterior': comentario.id_anterior,
         'descripcion': comentario.descripcion,
-        'fecha_creacion': comentario.fecha_creacion.astimezone(zona_arg).isoformat() if comentario.fecha_creacion else None,
-        'fecha_modificacion': comentario.fecha_modificacion.astimezone(zona_arg).isoformat() if comentario.fecha_modificacion else None
+        'fecha_creacion': (
+            comentario.fecha_creacion.astimezone(zona_arg).isoformat()
+            if comentario.fecha_creacion else None
+        ),
+        'fecha_modificacion': (
+            comentario.fecha_modificacion.astimezone(zona_arg).isoformat()
+            if comentario.fecha_modificacion else None
+        )
     }
     
 def obtener_todos():
+    """Obtiene todos los comentarios de la base de datos."""
     comentarios = Comentario.query.all()
     resultado = []
     if not comentarios:
@@ -84,13 +100,20 @@ def obtener_todos():
             'id_usuario': comentario.id_usuario,
             'id_anterior': comentario.id_anterior,
             'descripcion': comentario.descripcion,
-            'fecha_creacion': comentario.fecha_creacion.astimezone(zona_arg).isoformat() if comentario.fecha_creacion else None,
-            'fecha_modificacion': comentario.fecha_modificacion.astimezone(zona_arg).isoformat() if comentario.fecha_modificacion else None
+            'fecha_creacion': (
+                comentario.fecha_creacion.astimezone(zona_arg).isoformat()
+                if comentario.fecha_creacion else None
+            ),
+            'fecha_modificacion': (
+                comentario.fecha_modificacion.astimezone(zona_arg).isoformat()
+                if comentario.fecha_modificacion else None
+            )
         })
     return resultado
 
 
 def actualizar_comentario(id_comentario, data):
+    """Actualiza la descripción y la fecha de modificación de un comentario."""
     comentario = Comentario.query.get(id_comentario)
     if not comentario:
         raise Exception("Comentario no encontrado")
@@ -102,6 +125,7 @@ def actualizar_comentario(id_comentario, data):
 
 
 def eliminar_comentario(id_comentario):
+    """Elimina un comentario de la base de datos por su ID."""
     comentario = Comentario.query.get(id_comentario)
     if not comentario:
         raise Exception("Comentario no encontrado")

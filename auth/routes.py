@@ -1,13 +1,18 @@
+from datetime import datetime,timezone
+import logging
 from flask import Blueprint, request, jsonify
 from core.models import db, Usuario
-from firebase_admin import auth as firebase_auth
-from datetime import datetime,timezone
+from firebase_admin import auth as firebase_auth, exceptions as firebase_exceptions
+from sqlalchemy.exc import SQLAlchemyError
+
+
 
 auth_bp = Blueprint('auth', __name__)
 
 
 @auth_bp.route('/api/login', methods=['POST'])
 def login():
+    """Endpoint para login de usuario usando Firebase."""
     data = request.get_json()
     id_token = data.get("token")
 
@@ -20,8 +25,7 @@ def login():
 
         # Verifica si está deshabilitado
         if user_record.disabled:
-            return jsonify({"error": "Usuario deshabilitado"}), 403
-        
+            return jsonify({"error": "Usuario deshabilitado"}), 403 
         email = decoded_token.get('email')
         nombre = decoded_token.get('name', '')
         foto_perfil = decoded_token.get('picture', '')
@@ -45,6 +49,13 @@ def login():
 
         return jsonify({"idLocal": usuario.id, "message": "Usuario autenticado correctamente"}), 200
 
-    except Exception as e:
-        print("Error:", e)
+    except firebase_exceptions.FirebaseError as err:
+        logging.error("Firebase error: %s", err)
+        return jsonify({"error": "Error de autenticación con Firebase"}), 401
+    except SQLAlchemyError as err:
+        logging.error("Database error: %s", err)
+        return jsonify({"error": "Error de base de datos"}), 500
+    except Exception as err:  # Solo si es necesario, y documentado
+        logging.error("Error inesperado: %s", err)
         return jsonify({"error": "Token inválido o error interno"}), 401
+    

@@ -7,12 +7,14 @@ etiquetas_bp = Blueprint('etiquetas', __name__, url_prefix='/api/etiquetas')
 
 @etiquetas_bp.route('/', methods=['GET'])
 def listar_etiquetas():
+    """Lista todas las etiquetas ordenadas por nombre."""
     etiquetas = Etiqueta.query.order_by(Etiqueta.nombre).all()
     return jsonify([{"id": e.id, "nombre": e.nombre} for e in etiquetas])
 
 
 @etiquetas_bp.route('/', methods=['POST'])
 def crear_etiqueta():
+    """Crea una nueva etiqueta si el nombre es válido y no existe."""
     data = request.json
     nombre = data.get("nombre", "").strip()
     if not nombre:
@@ -33,6 +35,7 @@ def crear_etiqueta():
 
 @etiquetas_bp.route('/<int:id>', methods=['GET'])
 def obtener_etiqueta(id):
+    """Obtiene una etiqueta por su ID."""
     etiqueta = Etiqueta.query.get(id)
     if not etiqueta:
         return jsonify({"error": "Etiqueta no encontrada"}), 404
@@ -41,6 +44,7 @@ def obtener_etiqueta(id):
 
 @etiquetas_bp.route('/<int:id>', methods=['PATCH'])
 def actualizar_etiqueta(id):
+    """Actualiza el nombre de una etiqueta existente."""
     etiqueta = Etiqueta.query.get(id)
     if not etiqueta:
         return jsonify({"error": "Etiqueta no encontrada"}), 404
@@ -65,6 +69,7 @@ def actualizar_etiqueta(id):
 
 @etiquetas_bp.route('/<int:id>', methods=['DELETE'])
 def eliminar_etiqueta(id):
+    """Elimina una etiqueta por su ID."""
     etiqueta = Etiqueta.query.get(id)
     if not etiqueta:
         return jsonify({"error": "Etiqueta no encontrada"}), 404

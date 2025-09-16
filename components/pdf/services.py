@@ -13,6 +13,8 @@ import os
 
 
 def generar_pdf_publicacion(id_publicacion):
+    """Genera un archivo PDF con los datos de una publicación, incluyendo imagen,
+    descripción, contacto, ubicación, fecha, QR y logo."""
     publicacion = Publicacion.query.get(id_publicacion)
     if not publicacion:
         raise Exception("Publicación no encontrada")
@@ -45,7 +47,7 @@ def generar_pdf_publicacion(id_publicacion):
     # Imagen principal
     if imagen:
         try:
-            response = requests.get(imagen.url)
+            response = requests.get(imagen.url, timeout=10)
             if response.status_code == 200:
                 img_data = BytesIO(response.content)
                 pil_img = PilImage.open(img_data)
@@ -109,10 +111,8 @@ def generar_pdf_publicacion(id_publicacion):
     c.drawImage(ImageReader(qr_img), width - qr_size - 10, 20, width=qr_size, height=qr_size)
 
     # Logo (abajo izquierda)
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..\.."))  # Sube a BACKENDconFLASK
-    logo_path = os.path.join(base_dir, "Logo.jpg")  # Asegúrate que esté aquí
-
-    
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..\.."))
+    logo_path = os.path.join(base_dir, "Logo.jpg")
     if os.path.exists(logo_path):
         try:
             logo_reader = ImageReader(logo_path)
@@ -132,6 +132,8 @@ def generar_pdf_publicacion(id_publicacion):
 
 
 def coordenadas_a_direccion(lat, lon):
+    """Convierte coordenadas geográficas en una dirección legible
+    usando el servicio de OpenStreetMap."""
     url = "https://nominatim.openstreetmap.org/reverse"
     params = {
         'format': 'json',

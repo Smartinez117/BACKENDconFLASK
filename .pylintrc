@@ -12,7 +12,8 @@ disable=
     C0115,  # Missing class docstring
     C0116,  # Missing function docstring
     R0903,  # Too few public methods (para models simples de SQLAlchemy)
-    W0511   # TODO notes (permite dejar comentarios TODO sin warning)
+    W0511,   # TODO notes (permite dejar comentarios TODO sin warning)
+    E0401,  # Unable to import (a veces falla con imports relativos)
     # Se activan advertencias útiles para Flask y seguridad
     # W0702: No except handler
     # W0703: Catching too general exception
@@ -50,13 +51,13 @@ const-rgx=([A-Z_][A-Z0-9_]*)|(__.*__)
 argument-rgx=[a-z_][a-z0-9_]{2,30}$
 
 [IMPORTS]
-# Prohibir imports comodín tipo "from flask import *"
+# Prohibir imports comodin tipo "from flask import *"
 deprecated-modules=flask.ext
 known-standard-library=flask
 known-third-party=flask_sqlalchemy,sqlalchemy,flask_restful,flask_login
 
 [TYPECHECK]
-# Ignorar warnings de librerías externas que no tienen hints
+# Ignorar warnings de librerias externas que no tienen hints
 ignored-modules=flask,flask_sqlalchemy,flask_restful,flask_login,flask_cors
 
 [LOGGING]

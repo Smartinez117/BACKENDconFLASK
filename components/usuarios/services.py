@@ -6,7 +6,7 @@ import pytz
 zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
 
 def actualizar_datos_usuario(id_usuario,data):
-    
+    '''Actualiza la información de un usuario existente.'''
     usuario = Usuario.query.get(id_usuario)
 
     if not usuario:
@@ -20,8 +20,9 @@ def actualizar_datos_usuario(id_usuario,data):
     usuario.fecha_modificacion = datetime.now(timezone.utc)
 
     db.session.commit()
-       
+
 def get_usuario (id_usuario):
+    ''' Obtiene la información de un usuario por su ID.'''
     usuario = Usuario.query.get(id_usuario)
 
     if not usuario:
@@ -34,7 +35,10 @@ def get_usuario (id_usuario):
         'email': usuario.email,
         'foto_perfil_url':usuario.foto_perfil_url,
         'rol': usuario.rol,
-        'fecha_registro': usuario.fecha_registro.astimezone(zona_arg).isoformat() if usuario.fecha_registro else None,
+        'fecha_registro': (
+            usuario.fecha_registro.astimezone(zona_arg).isoformat()
+            if usuario.fecha_registro else None
+        ),
         'telefono_pais':usuario.telefono_pais,
         'telefono_numero_local':usuario.telefono_numero_local,
         'descripcion': usuario.descripcion,
@@ -43,6 +47,7 @@ def get_usuario (id_usuario):
     }
 
 def obtener_usuario_por_slug(slug):
+    '''funcion para obtener los datos del usuario por slug'''
     usuario = Usuario.query.filter_by(slug=slug).first()
 
     if not usuario:
@@ -55,7 +60,10 @@ def obtener_usuario_por_slug(slug):
         'email': usuario.email,
         'foto_perfil_url': usuario.foto_perfil_url,
         'rol': usuario.rol,
-        'fecha_registro': usuario.fecha_registro.astimezone(zona_arg).isoformat() if usuario.fecha_registro else None,
+        'fecha_registro': (
+            usuario.fecha_registro.astimezone(zona_arg).isoformat()
+            if usuario.fecha_registro else None
+        ),
         'telefono_pais': usuario.telefono_pais,
         'telefono_numero_local': usuario.telefono_numero_local,
         'descripcion': usuario.descripcion,
@@ -64,6 +72,7 @@ def obtener_usuario_por_slug(slug):
 
 
 def filtrar_usuarios_service(filtros):
+    '''Función para filtrar usuarios por email, nombre, teléfono y rol.'''
     query = Usuario.query
 
     if filtros.get("email"):
@@ -93,13 +102,17 @@ def filtrar_usuarios_service(filtros):
             "telefono_pais": u.telefono_pais,
             "telefono_numero_local": u.telefono_numero_local,
             "descripcion": u.descripcion,
-            "fecha_registro": u.fecha_registro.astimezone(zona_arg).isoformat() if u.fecha_registro else None
+            'fecha_registro': (
+                u.fecha_registro.astimezone(zona_arg).isoformat()
+                if u.fecha_registro else None
+            ),
         }
         for u in usuarios
     ]
 
 #funcion para obtener los datos del usuario por uid
 def obtener_usuario_por_uid(uid):
+    '''Función para obtener los datos del usuario por uid.'''
     usuario = Usuario.query.filter_by(firebase_uid=uid).first()
 
     if not usuario:
@@ -112,10 +125,12 @@ def obtener_usuario_por_uid(uid):
         'email': usuario.email,
         'foto_perfil_url': usuario.foto_perfil_url,
         'rol': usuario.rol,
-        'fecha_registro': usuario.fecha_registro.astimezone(zona_arg).isoformat() if usuario.fecha_registro else None,
+        'fecha_registro': (
+            usuario.fecha_registro.astimezone(zona_arg).isoformat()
+            if usuario.fecha_registro else None
+        ),
         'telefono_pais': usuario.telefono_pais,
         'telefono_numero_local': usuario.telefono_numero_local,
         'descripcion': usuario.descripcion,
         'slug': usuario.slug
     }
-
