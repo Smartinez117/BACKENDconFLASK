@@ -16,9 +16,9 @@ def crear_reporte(data):
         db.session.add(nuevo)
         db.session.commit()
         return {"mensaje": "Reporte creado", "id": nuevo.id}, 201
-    except Exception as e:
+    except Exception as error:
         db.session.rollback()
-        return {"error": str(e)}, 400
+        return {"error": str(error)}, 400
 
 
 
@@ -81,16 +81,16 @@ def eliminar_reporte(id_reporte):
 
 
 
-def reporte_to_dict(r):
+def reporte_to_dict(reporte):
     '''Convierte un objeto Reporte a un diccionario.'''
     return {
-        "id": r.id,
-        "id_publicacion": r.id_publicacion,
-        "id_usuario": r.id_usuario,
-        "descripcion": r.descripcion,
-        "tipo": r.tipo,
+        "id": reporte.id,
+        "id_publicacion": reporte.id_publicacion,
+        "id_usuario": reporte.id_usuario,
+        "descripcion": reporte.descripcion,
+        "tipo": reporte.tipo,
         "fecha_creacion": (
-            r.fecha_creacion.astimezone(zona_arg).isoformat()
-            if r.fecha_creacion else None
+            reporte.fecha_creacion.astimezone(zona_arg).isoformat()
+            if reporte.fecha_creacion else None
         )
     }

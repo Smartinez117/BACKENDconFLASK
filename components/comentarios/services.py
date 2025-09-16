@@ -35,15 +35,15 @@ def crear_comentario(data):
         db.session.commit()
         return {"mensaje": "Comentario creado", "id": nuevo.id}, 201
 
-    except Exception as e:
+    except Exception as error:
         db.session.rollback()
-        return {"error": str(e)}, 400
+        return {"error": str(error)}, 400
 
 
 
-def obtener_comentarios_por_publicacion(id):
+def obtener_comentarios_por_publicacion(id_public):
     """Obtiene todos los comentarios asociados a una publicación por su ID."""
-    comentarios = Comentario.query.filter_by(id_publicacion=id).all()
+    comentarios = Comentario.query.filter_by(id_publicacion=id_public).all()
     resultado = []
     for c in comentarios:
         resultado.append({
@@ -85,7 +85,7 @@ def obtener_comentario_por_su_id(id_comentario):
             if comentario.fecha_modificacion else None
         )
     }
-    
+ 
 def obtener_todos():
     """Obtiene todos los comentarios de la base de datos."""
     comentarios = Comentario.query.all()

@@ -50,8 +50,8 @@ def actualizar(id_comentario):
         data = request.get_json()
         actualizar_comentario(id_comentario, data)
         return jsonify({"mensaje": "Comentario actualizado"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    except Exception as error:
+        return jsonify({"error": str(error)}), 400
 
 
 @comentarios_bp.route("/comentarios/<int:id_comentario>", methods=["DELETE"])
@@ -60,5 +60,5 @@ def eliminar(id_comentario):
     try:
         eliminar_comentario(id_comentario)
         return jsonify({"mensaje": "Comentario eliminado"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    except Exception as error:
+        return jsonify({"error": str(error)}), 400

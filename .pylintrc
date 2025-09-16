@@ -14,6 +14,7 @@ disable=
     R0903,  # Too few public methods (para models simples de SQLAlchemy)
     W0511,   # TODO notes (permite dejar comentarios TODO sin warning)
     E0401,  # Unable to import (a veces falla con imports relativos)
+    C0411 # Wrong import order (a veces molesta con imports de Flask)
     # Se activan advertencias útiles para Flask y seguridad
     # W0702: No except handler
     # W0703: Catching too general exception

@@ -40,7 +40,8 @@ def get_publicaciones():
     return jsonify(publicacion), 200
 
 
-#GET /publicaciones/filtrar?lat=-34.60&lon=-58.38&radio=10&categoria=perdido&etiquetas=marron,grande&fecha_min=2025-07-01&fecha_max=2025-07-08&id_usuario=1
+#GET /publicaciones/filtrar?lat=-34.60&lon=-58.38&radio=10&categoria=perdido&
+# etiquetas=marron,grande&fecha_min=2025-07-01&fecha_max=2025-07-08&id_usuario=1
 @publicaciones_bp.route('/publicaciones/filtrar', methods=['GET'])
 def get_publicaciones_filtradas():
     """Obtiene publicaciones filtradas por ubicación, categoría, etiquetas, fechas o usuario."""
@@ -52,7 +53,7 @@ def get_publicaciones_filtradas():
         # Solo convertir si están presentes
         lat = float(lat) if lat else None
         lon = float(lon) if lon else None
-        radio = float(radio) if radio else None        
+        radio = float(radio) if radio else None
 
         categoria = request.args.get('categoria')
         etiquetas = request.args.get('etiquetas')
@@ -78,8 +79,8 @@ def get_publicaciones_filtradas():
 
         return jsonify(publicaciones), 200
 
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    except Exception as error:
+        return jsonify({'error': str(error)}), 400
 
 
 # PATCH
@@ -91,8 +92,8 @@ def actualizar(id_publicacion):
     try:
         actualizar_publicacion(id_publicacion, data)
         return jsonify({'mensaje': 'Publicación actualizada con éxito'}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    except Exception as error:
+        return jsonify({'error': str(error)}), 400
 
 
 
@@ -103,8 +104,8 @@ def borrar_publicacion(id_publicacion):
     try:
         eliminar_publicacion(id_publicacion)
         return jsonify({'mensaje': 'Publicación eliminada correctamente'}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    except Exception as error:
+        return jsonify({'error': str(error)}), 400
 
 @publicaciones_bp.route('/subir-imagenes', methods=['POST'])
 def subir_imagenes():

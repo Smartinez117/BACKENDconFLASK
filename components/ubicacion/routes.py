@@ -46,9 +46,9 @@ def obtener_localidades():
     ])
 
 @ubicacion_bp.route('/localidades/<int:id>', methods=['GET'])
-def obtener_localidad(id):
+def obtener_localidad(id_localidad):
     '''Obtiene detalles de una localidad por su ID.'''
-    localidad = Localidad.query.get(id)
+    localidad = Localidad.query.get(id_localidad)
 
     if not localidad:
         return jsonify({'error': 'Localidad no encontrada'}), 404
@@ -66,9 +66,9 @@ def obtener_localidad(id):
     })
 
 @ubicacion_bp.route('/localidades/nombre/<int:id>', methods=['GET'])
-def obtener_nombre_localidad(id):
+def obtener_nombre_localidad(id_localidad):
     '''Obtiene el nombre de una localidad por su ID.'''
-    localidad = Localidad.query.get(id)
+    localidad = Localidad.query.get(id_localidad)
 
     if not localidad:
         return jsonify({'error': 'Localidad no encontrada'}), 404

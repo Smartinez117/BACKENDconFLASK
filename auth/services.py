@@ -20,8 +20,8 @@ def require_auth(f):
                 return jsonify({'error': 'Usuario no registrado en base de datos'}), 403
 
             g.usuario_actual = usuario  # guardar usuario autenticado para usar en la vista
-        except Exception as e:
-            return jsonify({'error': f'Token inválido: {str(e)}'}), 401
+        except Exception as error:
+            return jsonify({'error': f'Token inválido: {str(error)}'}), 401
 
         return f(*args, **kwargs)
     return decorated

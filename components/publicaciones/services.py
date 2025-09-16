@@ -1,9 +1,10 @@
+import traceback
 from flask import jsonify
 from components.comentarios.services import eliminar_comentario
 from components.imagenes.services import eliminar_imagen
 from core.models import Comentario, db, Publicacion, Imagen, Etiqueta, PublicacionEtiqueta
 from datetime import datetime, timezone
-from math import radians
+from math import radians, sin, cos, sqrt, atan2
 from sqlalchemy import text, func
 from sqlalchemy.orm import joinedload
 import unicodedata
@@ -16,7 +17,6 @@ import cloudinary.uploader
 import pytz
 zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
 
-import traceback
 
 def crear_publicacion(data, usuario):
     """Crea una nueva publicación con imágenes y etiquetas."""
@@ -63,11 +63,11 @@ def crear_publicacion(data, usuario):
             "id_publicacion": nueva_publicacion.id
         }, 201
 
-    except Exception as e:
+    except Exception as error:
         traceback.print_exc()
         db.session.rollback()
         db.session.close()
-        return {"error": str(e)}, 400
+        return {"error": str(error)}, 400
 
 
 def obtener_publicacion_por_id(id_publicacion):
@@ -89,14 +89,29 @@ def obtener_publicacion_por_id(id_publicacion):
         'descripcion': pub.descripcion,
         'categoria': pub.categoria,
         'etiquetas': etiquetas,
-        'fecha_creacion': pub.fecha_creacion.astimezone(zona_arg).isoformat() if pub.fecha_creacion else None,
-        'fecha_modificacion': pub.fecha_modificacion.astimezone(zona_arg).isoformat() if pub.fecha_modificacion else None,
+        'fecha_creacion': (
+            pub.fecha_creacion.astimezone(zona_arg).isoformat()
+            if pub.fecha_creacion else None
+        ),
+        'fecha_modificacion': (
+            pub.fecha_modificacion.astimezone(zona_arg).isoformat()
+            if pub.fecha_modificacion else None
+        ),
         'coordenadas': pub.coordenadas,
         'imagenes': urls_imagenes
     }
 
 
-def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria=None, etiquetas=None, fecha_min=None, fecha_max=None, id_usuario=None):
+def obtener_publicaciones_filtradas(
+        lat=None,
+        lon=None,
+        radio_km=None,
+        categoria=None,
+        etiquetas=None,
+        fecha_min=None,
+        fecha_max=None,
+        id_usuario=None
+    ):
     """Obtiene publicaciones filtradas por ubicación, categoría, etiquetas, fechas o usuario."""
     query = db.session.query(Publicacion).options(
         joinedload(Publicacion.imagenes),  #left join de imagenes y etiquetas
@@ -121,9 +136,9 @@ def obtener_publicaciones_filtradas(lat=None, lon=None, radio_km=None, categoria
     if etiquetas:
         etiquetas_normalizadas = [normalizar_texto(e) for e in etiquetas if normalizar_texto(e).strip()]
         if etiquetas_normalizadas:
-            for et in etiquetas_normalizadas:
+            for etiqueta in etiquetas_normalizadas:
                 query = query.filter(
-                    Publicacion.etiquetas.any(func.lower(Etiqueta.nombre) == et)
+                    Publicacion.etiquetas.any(func.lower(Etiqueta.nombre) == etiqueta)
                 )
         else:
             return []
@@ -229,8 +244,8 @@ def eliminar_publicacion(id_publicacion):
     if not publicacion:
         raise Exception("Publicación no encontrada")
 
-    for c in Comentario.query.filter_by(id_publicacion=publicacion.id).all():
-        eliminar_comentario(c.id)
+    for comentario in Comentario.query.filter_by(id_publicacion=publicacion.id).all():
+        eliminar_comentario(comentario.id)
 
     for img in Imagen.query.filter_by(id_publicacion=publicacion.id).all():
         eliminar_imagen(img.id)
@@ -252,8 +267,6 @@ def normalizar_texto(texto):
 
 def calcular_distancia_km(lat1, lon1, lat2, lon2):
     """Calcula la distancia en kilómetros entre dos coordenadas geográficas."""
-    from math import radians, sin, cos, sqrt, atan2
-
     R = 6371  # km
     dlat = radians(lat2 - lat1)
     dlon = radians(lon2 - lon1)
@@ -265,7 +278,7 @@ def calcular_distancia_km(lat1, lon1, lat2, lon2):
 
 #def subir_imagen_a_cloudinary(file):
    # url = "https://api.cloudinary.com/v1_1/redema/image/upload"
-    
+
     #data = {
      #   "upload_preset": "redema_imagenes"
     #}

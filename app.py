@@ -33,9 +33,9 @@ def cerrar_sesion():
     """
     try:
         db.session.remove()  # limpia y cierra la sesión actual
-    except Exception as e:
-        print(f"Error al cerrar la sesión: {e}")
-              
+    except Exception as error:
+        print(f"Error al cerrar la sesión: {error}")
+
 @app.teardown_appcontext
 def shutdown_session(exception=None):
     """Cierra la sesión de base de datos al finalizar el contexto de la app."""

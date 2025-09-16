@@ -1,4 +1,3 @@
-from core.models import db, Publicacion, Imagen, Usuario
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
@@ -10,7 +9,7 @@ from reportlab.platypus import Paragraph
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from PIL import Image as PilImage
 import os
-
+from core.models import db, Publicacion, Imagen, Usuario
 
 def generar_pdf_publicacion(id_publicacion):
     """Genera un archivo PDF con los datos de una publicación, incluyendo imagen,

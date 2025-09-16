@@ -135,7 +135,7 @@ class Localidad(db.Model):
     id_departamento = db.Column(db.Integer, db.ForeignKey('departamentos.id'))
     latitud = db.Column(Numeric(15, 10))
     longitud = db.Column(Numeric(15, 10))
-    
+
 class Notificacion(db.Model):
     """Modelo de notificación para usuarios."""
     __tablename__ = 'notificaciones'
@@ -147,7 +147,7 @@ class Notificacion(db.Model):
     tipo = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime(timezone=True), nullable=False)
     leido = db.Column(db.Boolean, default=False)
-     
+
 class Reporte(db.Model):
     """Modelo de reporte de publicaciones."""
     __tablename__ = 'reportes'

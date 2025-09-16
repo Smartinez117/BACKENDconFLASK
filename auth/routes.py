@@ -25,7 +25,7 @@ def login():
 
         # Verifica si está deshabilitado
         if user_record.disabled:
-            return jsonify({"error": "Usuario deshabilitado"}), 403 
+            return jsonify({"error": "Usuario deshabilitado"}), 403
         email = decoded_token.get('email')
         nombre = decoded_token.get('name', '')
         foto_perfil = decoded_token.get('picture', '')

@@ -41,9 +41,9 @@ def crear_imagen(data):
         db.session.commit()
         return jsonify({"mensaje": "Imagen creada exitosamente", "id": nueva_imagen.id}), 201
 
-    except Exception as e:
+    except Exception as error:
         db.session.rollback()
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": str(error)}), 400
 
 
 def eliminar_imagen(id_imagen):
@@ -58,7 +58,7 @@ def eliminar_imagen(id_imagen):
         db.session.commit()
         return jsonify({"mensaje": "Imagen eliminada exitosamente"}), 200
 
-    except Exception as e:
+    except Exception as error:
         db.session.rollback()
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": str(error)}), 400
     

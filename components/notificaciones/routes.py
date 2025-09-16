@@ -63,8 +63,8 @@ def crear_con_socket():
 notification = {
             "titulo": "lautaro stuve comento tu publicacion",
             "descripcion": "comento en 'perro marron perdido",
-            "id_publicacion" : "76", # para redirigir al user a la publicacion si quiere ver quien corno comento algo 
-            "id_notificacion": "12"  #para marcarla como leida aunque en esta prueba aun no tengo defina esa funcion para el front
+            "id_publicacion" : "76", # para redirigir al user a la publicacion 
+            "id_notificacion": "12"  #para marcarla como leida aunque en esta prueba, todavia no definida en front
         }
 mensaje = {
   "titulo": "lautaro stuve comento tu publicacion",

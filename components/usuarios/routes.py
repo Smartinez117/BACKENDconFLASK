@@ -1,11 +1,16 @@
 from flask import Blueprint, request, jsonify
-from core.models import db, Usuario
-from components.usuarios.services import actualizar_datos_usuario , get_usuario,filtrar_usuarios_service, obtener_usuario_por_uid, obtener_usuario_por_slug
-from firebase_admin import auth 
+from core.models import db, Usuario, Publicacion
+from components.usuarios.services import (
+    actualizar_datos_usuario,
+    get_usuario,
+    filtrar_usuarios_service,
+    obtener_usuario_por_uid,
+    obtener_usuario_por_slug,
+)
+from firebase_admin import auth
 from auth.services import require_auth
 from flask_socketio import SocketIO, disconnect
 from util import socketio
-from core.models import db, Publicacion  # importa tu modelo de publicaciones
 
 usuarios_bp = Blueprint('usuarios', __name__)
 
@@ -18,14 +23,14 @@ def actualizar_usuario(id_usuario):
     try:
         actualizar_datos_usuario(id_usuario,data)
         return jsonify({'mensaje': 'Usuario actualizado con éxito'}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    except Exception as error:
+        return jsonify({'error': str(error)}), 400
 
 #Endpoint para obtener usuarios por su id
 @usuarios_bp.route('/usuario/<int:id_usuario>', methods = ['GET'])
 def obtener_usuario_por_id(id_usuario):
     '''Obtiene la información de un usuario por su ID.'''
-    usuario = get_usuario(id_usuario) 
+    usuario = get_usuario(id_usuario)
     return jsonify(usuario), 200
 
 # Endpoint para obtener usuario por slug
@@ -54,8 +59,8 @@ def banear_usuario(id_usuario):
         db.session.commit()
 
         return jsonify({"mensaje": f"Usuario {usuario.nombre} baneado correctamente"}), 200
-    except Exception as e:
-        return jsonify({"error": f"No se pudo banear al usuario: {str(e)}"}), 500
+    except Exception as error:
+        return jsonify({"error": f"No se pudo banear al usuario: {str(error)}"}), 500
 
 #Endpoint para desbanear usuarios
 @usuarios_bp.route('/api/<int:id_usuario>/desban', methods=['PATCH'])
@@ -79,8 +84,8 @@ def desbanear_usuario(id_usuario):
 
         return jsonify({"mensaje": f"Usuario {usuario.nombre} desbaneado correctamente"}), 200
 
-    except Exception as e:
-        return jsonify({"error": f"No se pudo desbanear al usuario: {str(e)}"}), 500
+    except Exception as error:
+        return jsonify({"error": f"No se pudo desbanear al usuario: {str(error)}"}), 500
 
 @usuarios_bp.route('/usuario/<int:id_usuario>', methods=['DELETE'])
 def eliminar_usuario(id_usuario):
@@ -96,7 +101,8 @@ def eliminar_usuario(id_usuario):
     return jsonify({'mensaje': f'Usuario {usuario.nombre} eliminado correctamente'}), 200
 
 
-#endpoint para obtener los datos de un usuario por el uid (usando en la interface de configuraciones de perfil)
+#endpoint para obtener los datos de un usuario por el uid
+# (usando en la interface de configuraciones de perfil)
 @usuarios_bp.route('/api/userconfig', methods=['GET'])
 def user_config():
     '''Obtiene los datos completos del usuario autenticado usando su token Firebase.'''
@@ -154,23 +160,6 @@ def get_usuarios():
         "pages": pagination.pages
     })
 
-#Endpoint para filtrar usuarios por mail, nombre , telefono y rol
-"""@usuarios_bp.route('/api/usuarios', methods=['GET'])
-def filtrar_usuarios():
-    filtros = {
-        "email": request.args.get('email'),
-        "nombre": request.args.get('nombre'),
-        "telefono_pais": request.args.get('telefono_pais'),
-        "telefono_numero_local": request.args.get('telefono_numero_local'),
-        "rol": request.args.get('rol')
-    }
-
-    try:
-        usuarios_filtrados = filtrar_usuarios_service(filtros)
-        return jsonify(usuarios_filtrados), 200
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400"""
-
 #diccionario de usuarios conectados
 userconnected = {}
 
@@ -187,7 +176,8 @@ def on_connect(auth_data):
         decoded_token = auth.verify_id_token(token)
         uid = decoded_token.get('uid')
         name= decoded_token.get('name')
-        sid = request.sid #<-- identificador unico de inicio de sesion del socket para cada conexion de cada user
+        sid = request.sid #<-- identificador unico de inicio de sesion del socket
+        # para cada conexion de cada user
         print(uid,name,sid)
         if not uid:
             disconnect()
@@ -223,17 +213,15 @@ def usuario_desconectado(sid):
 
 # Endpoint para obtener publicaciones de un usuario por su id
 @usuarios_bp.route('/usuarios/<int:idUsuario>/publicaciones', methods=['GET'])
-def obtener_publicaciones_usuario(id_usuario):
+def obtener_publicaciones_usuario(user_id):
     '''Obtiene todas las publicaciones de un usuario específico por su ID.'''
     try:
-        usuario = Usuario.query.get_or_404(id_usuario)
-
         publicaciones = (
-            Publicacion.query.filter_by(id_usuario=id_usuario)
+            Publicacion.query.filter_by(id_usuario=user_id)
             .order_by(Publicacion.id.desc())
             .all()
         )
 
         return jsonify([pub.to_dict() for pub in publicaciones]), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    except Exception as error:
+        return jsonify({'error': str(error)}), 400

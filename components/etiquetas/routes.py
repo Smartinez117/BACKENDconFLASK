@@ -34,18 +34,18 @@ def crear_etiqueta():
 
 
 @etiquetas_bp.route('/<int:id>', methods=['GET'])
-def obtener_etiqueta(id):
+def obtener_etiqueta(id_etiqueta):
     """Obtiene una etiqueta por su ID."""
-    etiqueta = Etiqueta.query.get(id)
+    etiqueta = Etiqueta.query.get(id_etiqueta)
     if not etiqueta:
         return jsonify({"error": "Etiqueta no encontrada"}), 404
     return jsonify({"id": etiqueta.id, "nombre": etiqueta.nombre})
 
 
 @etiquetas_bp.route('/<int:id>', methods=['PATCH'])
-def actualizar_etiqueta(id):
+def actualizar_etiqueta(id_etiqueta):
     """Actualiza el nombre de una etiqueta existente."""
-    etiqueta = Etiqueta.query.get(id)
+    etiqueta = Etiqueta.query.get(id_etiqueta)
     if not etiqueta:
         return jsonify({"error": "Etiqueta no encontrada"}), 404
 
@@ -54,7 +54,7 @@ def actualizar_etiqueta(id):
     if not nuevo_nombre:
         return jsonify({"error": "El nombre es obligatorio"}), 400
 
-    if Etiqueta.query.filter(Etiqueta.nombre == nuevo_nombre, Etiqueta.id != id).first():
+    if Etiqueta.query.filter(Etiqueta.nombre == nuevo_nombre, Etiqueta.id != id_etiqueta).first():
         return jsonify({"error": "Otra etiqueta con ese nombre ya existe"}), 409
 
     etiqueta.nombre = nuevo_nombre
@@ -68,9 +68,9 @@ def actualizar_etiqueta(id):
 
 
 @etiquetas_bp.route('/<int:id>', methods=['DELETE'])
-def eliminar_etiqueta(id):
+def eliminar_etiqueta(id_etiqueta):
     """Elimina una etiqueta por su ID."""
-    etiqueta = Etiqueta.query.get(id)
+    etiqueta = Etiqueta.query.get(id_etiqueta)
     if not etiqueta:
         return jsonify({"error": "Etiqueta no encontrada"}), 404
 

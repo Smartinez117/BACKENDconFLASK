@@ -21,9 +21,9 @@ def crear_notificacion(data):#suponog que aca habria que agregar lo del id de la
         db.session.add(nueva)
         db.session.commit()
         return {"mensaje": "Notificación creada", "id": nueva.id}, 201
-    except Exception as e:
+    except Exception as error:
         db.session.rollback()
-        return {"error": str(e)}, 400
+        return {"error": str(error)}, 400
 
 
 def obtener_notificaciones_por_usuario(id_usuario, solo_no_leidas=False):
@@ -61,10 +61,10 @@ def eliminar_notificacion(id_noti):
     return {"mensaje": "Notificación eliminada"}
 
 
-def noti_to_dict(n):
+def noti_to_dict(notificacion):
     """Convierte una notificación a un diccionario serializable."""
     ahora = datetime.now(timezone.utc)
-    delta = ahora - n.fecha_creacion
+    delta = ahora - notificacion.fecha_creacion
 
     if delta.days > 0:
         tiempo_pasado = f"hace {delta.days} día(s)"
@@ -76,21 +76,21 @@ def noti_to_dict(n):
         tiempo_pasado = "hace unos segundos"
 
     return {
-        "id": n.id,
-        "id_usuario": n.id_usuario,
-        "titulo": n.titulo,
-        "descripcion": n.descripcion,
-        "tipo": n.tipo,
-        "fecha_creacion": n.fecha_creacion.isoformat(),
+        "id": notificacion.id,
+        "id_usuario": notificacion.id_usuario,
+        "titulo": notificacion.titulo,
+        "descripcion": notificacion.descripcion,
+        "tipo": notificacion.tipo,
+        "fecha_creacion": notificacion.fecha_creacion.isoformat(),
         "tiempo_pasado": tiempo_pasado,
-        "leido": n.leido
+        "leido": notificacion.leido
     }
 
 #funciones para las notficaiones de los sockets
 #aqui voy a definir dos eventos que creo que son los unicos asique vamos a verlos despues
 
-#en caso de que ocurra el evento de que alguien comenta tu publicacion entonces notificas de inmediato
-#iria de la mano con la funcion de crear notificacion asique la dejare aqui notado 
+#en caso de que ocurra el evento de que alguien comenta tu publicacion entonces notifica inmediato
+#iria de la mano con la funcion de crear notificacion asique la dejare aqui notado
 def notificar(newnotificacion):
     """Envía una notificación en tiempo real al usuario correspondiente usando sockets."""
     id_owner = obtener_user_por_idpublicacion(newnotificacion.id_publicacion)
@@ -100,10 +100,10 @@ def notificar(newnotificacion):
         notification = {
             "titulo": newnotificacion.titulo,
             "descripcion": newnotificacion.descripcion,
-            "id_publicacion" :newnotificacion.id_publicacion, # para redirigir al user a la publicacion si quiere ver quien corno comento algo 
+            "id_publicacion" :newnotificacion.id_publicacion, # para redirigir al user a la publicacion
             "id_notificacion": newnotificacion.id  #para marcarla como leida
         }
-        socketio.emit('notificacion',notification,namespace='/notificacion/'+uid_user) 
+        socketio.emit('notificacion',notification,namespace='/notificacion/'+uid_user)
 
 #en caso de que te conectes entonces le pides al back todas tus notificaciones:
 #esta la tendria que importar en la parte que cree para registrar a los user en la carpeta de users
@@ -114,10 +114,11 @@ def notificarconectado(iduser,uid_user):
     if notificaciones_pendientes and uid_user in userconnected:
         for notification in notificaciones_pendientes:
             socketio.emit('notificacion',notification,namespace='/notificacion/'+uid_user) 
-#esta va a enviar todas las notificaciones pendientes que tiene la cosa incluso podemos enviarlas en orden soo modificando el query
+#esta va a enviar todas las notificaciones pendientes que tiene la cosa incluso
+#podemos enviarlas en orden soo modificando el query
 
-def obtener_user_por_idpublicacion(publicacionID):
+def obtener_user_por_idpublicacion(publicacion_id):
     """Obtiene el ID de usuario dueño de una publicación dado el ID de la publicación."""
-    publicacion = Publicacion.query(publicacionID)
+    publicacion = Publicacion.query(publicacion_id)
     if publicacion:
         return publicacion.id_usuario
