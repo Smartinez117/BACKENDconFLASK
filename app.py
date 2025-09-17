@@ -20,6 +20,8 @@ from components.pdf.routes import pdf_bp
 from components.ubicacion.routes import ubicacion_bp
 from components.etiquetas.routes import etiquetas_bp
 from dotenv import load_dotenv
+from waitress import serve
+
 import firebase_admin
 #
 from util import socketio
@@ -77,5 +79,11 @@ app.register_blueprint(etiquetas_bp, url_prefix='/api/etiquetas')
 # Inicializas socketio con la app
 socketio.init_app(app)
 
+@app.route("/")
+def index():
+    return {"status": "ok", "message": "Backend Flask corriendo en Render"}
+
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    serve(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
