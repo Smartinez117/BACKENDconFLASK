@@ -10,8 +10,6 @@ from auth.services import require_auth
 #
 from util import socketio
 from ..usuarios.routes import userconnected  #importamos la libreria de usuarios conectados
-#importaciones para las pruebas
-#importaciones para las pruebas
 
 notificaciones_bp = Blueprint("notificaciones", __name__)
 
@@ -58,6 +56,9 @@ def crear_con_socket():
     # lógica para crear notificación -->
     socketio.emit("nueva_notificacion", {"mensaje": "Nueva notificación"})
     return jsonify({"status": "ok"}), 200
+
+
+
 
 #datos de prueba para la part de notificaicones---------------------------------------------
 notification = {
