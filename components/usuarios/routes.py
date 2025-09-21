@@ -212,12 +212,14 @@ def usuario_desconectado(sid):
 
 
 # Endpoint para obtener publicaciones de un usuario por su id
+#idUsuario : es el id traido desde el endpoint
+#id_usuario : es un atributo de cada publicacion, se ven parecidos pero la diferencia esta en el guión bajo
 @usuarios_bp.route('/usuarios/<int:idUsuario>/publicaciones', methods=['GET'])
-def obtener_publicaciones_usuario(user_id):
+def obtener_publicaciones_usuario(idUsuario):
     '''Obtiene todas las publicaciones de un usuario específico por su ID.'''
     try:
         publicaciones = (
-            Publicacion.query.filter_by(id_usuario=user_id)
+            Publicacion.query.filter_by(id_usuario=idUsuario)
             .order_by(Publicacion.id.desc())
             .all()
         )
