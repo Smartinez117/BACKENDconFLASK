@@ -17,7 +17,8 @@ def crear_notificacion(data):#suponog que aca habria que agregar lo del id de la
             descripcion=data.get('descripcion'),
             tipo=data.get('tipo'),
             fecha_creacion=datetime.now(timezone.utc),
-            leido=False
+            leido=False,
+            id_publicacion=data.get('id_publicacion')
         )
         db.session.add(nueva)
         db.session.commit()

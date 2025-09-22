@@ -29,7 +29,8 @@ def crear_comentario(data):
                 "id_usuario": publicacion.id_usuario,
                 "titulo": f"{usuario_comentador.nombre} comentó tu publicación",
                 "descripcion": f"Comentó en: '{publicacion.titulo}'",
-                "tipo": "comentario"
+                "tipo": "comentario",
+                "id_publicacion":data['id_publicacion']
             })
 
         db.session.commit()

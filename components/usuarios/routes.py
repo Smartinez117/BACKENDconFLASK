@@ -178,7 +178,7 @@ def on_connect(auth_data):
         name= decoded_token.get('name')
         sid = request.sid #<-- identificador unico de inicio de sesion del socket
         # para cada conexion de cada user
-        print(uid,name,sid)
+        #print(uid,name,sid)
         if not uid:
             disconnect()
             return
@@ -200,13 +200,13 @@ def usuario_conectado(uid,name,sid):
         "uid": uid,
         "name": name
         }
-    print('usuarios conectados:',userconnected)
+    #print('usuarios conectados:',userconnected)
 
 
 def usuario_desconectado(sid):
     '''Elimina un usuario del diccionario de usuarios conectados.'''
     userconnected.pop(sid,None)
-    print('usuarios conectados:',userconnected)
+    #print('usuarios conectados:',userconnected)
 
 
 
