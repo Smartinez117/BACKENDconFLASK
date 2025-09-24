@@ -14,7 +14,8 @@ class Usuario(db.Model):
     nombre = db.Column(db.Text, nullable=False)
     email = db.Column(db.Text, nullable=False)
     foto_perfil_url = db.Column(db.Text)
-    rol = db.Column(db.Text)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False, default=1)
+    rol_obj = db.relationship('Rol', back_populates='usuarios')
     fecha_registro = db.Column(db.DateTime(timezone=True))
     telefono_pais = db.Column(db.Text)
     telefono_numero_local = db.Column(db.BigInteger)
@@ -34,7 +35,7 @@ class Usuario(db.Model):
             "id": self.id,
             "nombre": self.nombre,
             "email": self.email,
-            "rol": self.rol,
+            "rol": self.rol_obj.nombre if self.rol_obj else None,
             "fecha_registro": self.fecha_registro.isoformat() if self.fecha_registro else None,
             "foto_perfil_url": self.foto_perfil_url,
             "slug": self.slug
@@ -158,6 +159,16 @@ class Reporte(db.Model):
     tipo = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime(timezone=True), nullable=False)
     
+
+class Rol(db.Model):
+    """Modelo de rol para usuarios."""
+    __tablename__ = 'roles'
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(50), unique=True, nullable=False)  # ej: "user", "admin"
+
+    # Relación con usuarios (un rol puede tener muchos usuarios)
+    usuarios = db.relationship('Usuario', back_populates='rol_obj')
     
     
     
@@ -180,6 +191,7 @@ class RequestLog(db.Model):
     timestamp_send_firebase = db.Column(db.DateTime(timezone=True))
     timestamp_return_firebase = db.Column(db.DateTime(timezone=True))
     timestamp_response_sent = db.Column(db.DateTime(timezone=True))
+    response_time_ms = db.Column(db.Integer, nullable=True)
 
     worker_id = db.Column(db.String)
     request_type = db.Column(db.String(50))
