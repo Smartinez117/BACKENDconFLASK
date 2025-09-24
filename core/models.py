@@ -191,6 +191,7 @@ class RequestLog(db.Model):
     timestamp_send_firebase = db.Column(db.DateTime(timezone=True))
     timestamp_return_firebase = db.Column(db.DateTime(timezone=True))
     timestamp_response_sent = db.Column(db.DateTime(timezone=True))
+    response_time_ms = db.Column(db.Integer, nullable=True)
 
     worker_id = db.Column(db.String)
     request_type = db.Column(db.String(50))
