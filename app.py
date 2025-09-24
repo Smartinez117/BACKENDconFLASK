@@ -44,7 +44,7 @@ def shutdown_session(exception=None):
     cerrar_sesion()
 
 # Inicializar Firebase
-cred = credentials.Certificate("firebase-credentials.json")
+cred = credentials.Certificate("firebase/firebase-credentials.json")
 firebase_admin.initialize_app(cred)
 
 # Configuración de la base de datos con SQLAlchemy
