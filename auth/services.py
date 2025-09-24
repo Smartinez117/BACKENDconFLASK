@@ -2,6 +2,8 @@ from functools import wraps
 from flask import request, jsonify, g
 from firebase_admin import auth as firebase_auth
 from core.models import Usuario
+from logs.util import log_external
+
 
 def require_auth(f):
     """Decorador para requerir autenticación con Firebase en rutas protegidas."""

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from math import radians, sin, cos, sqrt, atan2
 from sqlalchemy import text, func
 from sqlalchemy.orm import joinedload
+from logs.util import log_external
 import unicodedata
 import requests
 
@@ -294,6 +295,7 @@ def calcular_distancia_km(lat1, lon1, lat2, lon2):
      #   print("Error al subir la imagen:", response.text)
       #  return None
 
+@log_external("cloudinary")
 def subir_imagen_a_cloudinary(file):
     """Sube una imagen a Cloudinary y devuelve la URL segura."""
     try:

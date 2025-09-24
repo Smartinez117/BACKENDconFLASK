@@ -4,13 +4,13 @@ from flask import Blueprint, request, jsonify
 from core.models import db, Usuario
 from firebase_admin import auth as firebase_auth, exceptions as firebase_exceptions
 from sqlalchemy.exc import SQLAlchemyError
-
+from logs.util import log_external
 
 
 auth_bp = Blueprint('auth', __name__)
 
-
 @auth_bp.route('/api/login', methods=['POST'])
+@log_external("firebase")
 def login():
     """Endpoint para login de usuario usando Firebase."""
     data = request.get_json()
