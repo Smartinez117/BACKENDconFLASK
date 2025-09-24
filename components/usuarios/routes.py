@@ -178,7 +178,7 @@ def on_connect(auth_data):
         name= decoded_token.get('name')
         sid = request.sid #<-- identificador unico de inicio de sesion del socket
         # para cada conexion de cada user
-        print(uid,name,sid)
+        #print(uid,name,sid)
         if not uid:
             disconnect()
             return
@@ -200,24 +200,26 @@ def usuario_conectado(uid,name,sid):
         "uid": uid,
         "name": name
         }
-    print('usuarios conectados:',userconnected)
+    #print('usuarios conectados:',userconnected)
 
 
 def usuario_desconectado(sid):
     '''Elimina un usuario del diccionario de usuarios conectados.'''
     userconnected.pop(sid,None)
-    print('usuarios conectados:',userconnected)
+    #print('usuarios conectados:',userconnected)
 
 
 
 
 # Endpoint para obtener publicaciones de un usuario por su id
+#idUsuario : es el id traido desde el endpoint
+#id_usuario : es un atributo de cada publicacion, se ven parecidos pero la diferencia esta en el guión bajo
 @usuarios_bp.route('/usuarios/<int:idUsuario>/publicaciones', methods=['GET'])
-def obtener_publicaciones_usuario(user_id):
+def obtener_publicaciones_usuario(idUsuario):
     '''Obtiene todas las publicaciones de un usuario específico por su ID.'''
     try:
         publicaciones = (
-            Publicacion.query.filter_by(id_usuario=user_id)
+            Publicacion.query.filter_by(id_usuario=idUsuario)
             .order_by(Publicacion.id.desc())
             .all()
         )

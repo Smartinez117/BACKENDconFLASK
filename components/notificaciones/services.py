@@ -4,6 +4,7 @@ from datetime import datetime,timezone
 from ..usuarios.routes import userconnected  #importamos la libreria de usuarios conectados
 from util import socketio
 from ..usuarios.services import get_usuario
+from flask_socketio import join_room,leave_room,emit
 import pytz
 zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
 
@@ -16,7 +17,8 @@ def crear_notificacion(data):#suponog que aca habria que agregar lo del id de la
             descripcion=data.get('descripcion'),
             tipo=data.get('tipo'),
             fecha_creacion=datetime.now(timezone.utc),
-            leido=False
+            leido=False,
+            id_publicacion=data.get('id_publicacion')
         )
         db.session.add(nueva)
         db.session.commit()
@@ -122,3 +124,88 @@ def obtener_user_por_idpublicacion(publicacion_id):
     publicacion = Publicacion.query(publicacion_id)
     if publicacion:
         return publicacion.id_usuario
+
+###------------------------FUNCIONAMIENTO DEL CHAT------------------------#################
+USER_ROOMS={}
+CHAT_ROOMS={}
+#iniciar conversaciones entre users
+def iniciar_conversacion(uid,roomID):
+    CHAT_ROOMS[roomID]={
+        'users':[uid],
+        'mensajes':[],
+        'last_m_user1':0,
+        'last_m_user2':0
+    }
+    if uid not in USER_ROOMS:
+        USER_ROOMS[uid]=[]
+    USER_ROOMS[uid].append(roomID)
+    if roomID not in USER_ROOMS[uid]:  
+        USER_ROOMS[uid].append(roomID)
+
+#guardar los mensajes que se envien 
+def guardar_mensaje(roomID,uid_sender,mensaje):
+   if roomID in CHAT_ROOMS:
+    CHAT_ROOMS[roomID]['mensajes'].append({
+       uid_sender:mensaje
+    })
+
+def solicitud_mensaje(uid):
+    socketio.emit('solicitud','alguien te envio un mensaje privado',namespace='/solicitud_CHAT/'+uid) 
+
+#decorardores de evnetos para los sockets 
+#socket que escucha cuando uno se une a un chat y lo guarda 
+@socketio.on('join_chat')
+def handle_join_chat(data):
+    room = data['room'] 
+    uid_user = data.get('user')
+    user_notificar = data.get ('usuario2')
+    join_room(room)  # Une este socket al room
+    iniciar_conversacion(uid_user,room)
+    solicitud_mensaje(user_notificar) # aqui le notificamos al otro que se le envio un mensaje
+    emit('status', f'{uid_user} se unió al chat {room}', room=room)
+# aqui el user que quiere la conversacion crea un room con su uID cosa que despues el otro user se conecte
+
+@socketio.on('send_message')
+def handle_send_message(data):
+    user_uid= data.get('uid_user')
+    room = data.get('room')
+    message = data.get('menssage')
+    guardar_mensaje(room,user_uid,message)
+    emit('message', message, to=room)
+
+@socketio.on('leave_chat')
+def handle_leave_chat(data):
+    room = data['room']
+    user = data.get('user')
+    leave_room(room)
+    emit('status', f'{user} salió del chat {room}', room=room)
+
+#para unirse desde el front se usa:
+
+#socket.emit('join_chat', { room: 'uid', user1: 'usuario1',user_not:'usuario2' }); se puede usar los uid de cada user para generar los rooms 
+#lo que vamos a enviar sera el uid del que quiere enviar mensaje y el uid o cualquier dato que sirva para identificar a quien le enviamos el mensaje 
+
+#para enviar un mensaje desde el front usar:
+#Para emitir otro evento, por ejemplo 'send_message' con datos
+#socket.emit('send_message', { room: 'chat123', message: 'Hola, ¿cómo estás?',uid_user= '1234567asdasd' });
+def enviar_mensajes_pendientes(uid):
+    """Envía todos los mensajes pendientes guardados en memory a un usuario conectado."""
+
+    # Verificas que el usuario esté conectado y tienes su sid
+    if uid in userconnected:
+        sid = userconnected[uid]['sid']
+        
+        # Buscar todos los rooms del usuario
+        rooms_usuario = USER_ROOMS.get(uid, [])
+        
+        # Por cada room obtener mensajes pendientes
+        for room in rooms_usuario:
+            if room in CHAT_ROOMS:
+                mensajes = CHAT_ROOMS[room]['mensajes']
+                for mensaje in mensajes:
+                    socketio.emit('mensaje', mensaje, room=sid)
+
+#notas de desarrollo:
+#para la parte del evento de recibir todo apenas se conecte debe funcionar agregando las fucniones cuando apenas se conecte el user:
+# sera la primera version del chat con respecto al back
+###------------------------FUNCIONAMIENTO DEL CHAT------------------------#################
