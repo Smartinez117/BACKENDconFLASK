@@ -47,6 +47,8 @@ def login():
             db.session.add(nuevo_usuario)
             db.session.commit()
 
+            usuario = nuevo_usuario
+
         return jsonify({"idLocal": usuario.id, "message": "Usuario autenticado correctamente"}), 200
 
     except firebase_exceptions.FirebaseError as err:

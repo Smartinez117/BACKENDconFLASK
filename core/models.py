@@ -3,6 +3,8 @@ import uuid
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Numeric
 from slugify import slugify
+from sqlalchemy import event
+import uuid
 
 db = SQLAlchemy()
 
@@ -41,6 +43,12 @@ class Usuario(db.Model):
             "slug": self.slug
         }
 
+@event.listens_for(Usuario, 'before_insert')
+def generar_slug_before_insert(mapper, connection, target):
+    if not target.slug:  # si no tiene slug
+        base_slug = slugify(target.nombre)
+        unique_suffix = uuid.uuid4().hex[:6]
+        target.slug = f"{base_slug}{unique_suffix}"
 
 class Etiqueta(db.Model):
     """Modelo de etiqueta para publicaciones."""
