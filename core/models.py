@@ -158,3 +158,57 @@ class Reporte(db.Model):
     tipo = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime(timezone=True), nullable=False)
     
+    
+    
+    
+class RequestLog(db.Model):
+    """Modelo para registrar logs de requests."""
+    __tablename__ = "request_logs"
+
+    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    request_id = db.Column(db.String, nullable=False)
+
+    path = db.Column(db.Text)
+    method = db.Column(db.String(10))
+
+    timestamp_arrival = db.Column(db.DateTime(timezone=True))
+    timestamp_start_processing = db.Column(db.DateTime(timezone=True))
+    timestamp_send_supabase = db.Column(db.DateTime(timezone=True))
+    timestamp_return_supabase = db.Column(db.DateTime(timezone=True))
+    timestamp_send_cloudinary = db.Column(db.DateTime(timezone=True))
+    timestamp_return_cloudinary = db.Column(db.DateTime(timezone=True))
+    timestamp_send_firebase = db.Column(db.DateTime(timezone=True))
+    timestamp_return_firebase = db.Column(db.DateTime(timezone=True))
+    timestamp_response_sent = db.Column(db.DateTime(timezone=True))
+
+    worker_id = db.Column(db.String)
+    request_type = db.Column(db.String(50))
+
+    payload_size = db.Column(db.Integer)
+    image_size = db.Column(db.Integer)
+
+    status_code = db.Column(db.Integer)
+    error = db.Column(db.Text)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "request_id": self.request_id,
+            "path": self.path,
+            "method": self.method,
+            "timestamp_arrival": self.timestamp_arrival.isoformat() if self.timestamp_arrival else None,
+            "timestamp_start_processing": self.timestamp_start_processing.isoformat() if self.timestamp_start_processing else None,
+            "timestamp_send_supabase": self.timestamp_send_supabase.isoformat() if self.timestamp_send_supabase else None,
+            "timestamp_return_supabase": self.timestamp_return_supabase.isoformat() if self.timestamp_return_supabase else None,
+            "timestamp_send_cloudinary": self.timestamp_send_cloudinary.isoformat() if self.timestamp_send_cloudinary else None,
+            "timestamp_return_cloudinary": self.timestamp_return_cloudinary.isoformat() if self.timestamp_return_cloudinary else None,
+            "timestamp_send_firebase": self.timestamp_send_firebase.isoformat() if self.timestamp_send_firebase else None,
+            "timestamp_return_firebase": self.timestamp_return_firebase.isoformat() if self.timestamp_return_firebase else None,
+            "timestamp_response_sent": self.timestamp_response_sent.isoformat() if self.timestamp_response_sent else None,
+            "worker_id": self.worker_id,
+            "request_type": self.request_type,
+            "payload_size": self.payload_size,
+            "image_size": self.image_size,
+            "status_code": self.status_code,
+            "error": self.error,
+        }
