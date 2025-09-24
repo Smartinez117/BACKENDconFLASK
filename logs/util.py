@@ -97,9 +97,20 @@ def before_request_log():
     """Hook para guardar el tiempo de llegada de la request."""
     g.request_id = str(uuid.uuid4())
     g.timestamp_arrival = datetime.datetime.now(datetime.timezone.utc)
+    
 
 def after_request_log(response):
     """Hook para guardar el tiempo de respuesta y crear el log."""
+    
+    """Hook para guardar el tiempo de respuesta y crear el log."""
+    timestamp_response_sent = datetime.datetime.now(datetime.timezone.utc)
+
+    # calcular diferencia en milisegundos
+    response_time_ms = None
+    if g.get("timestamp_arrival"):
+        diff = timestamp_response_sent - g.get("timestamp_arrival")
+        response_time_ms = int(diff.total_seconds() * 1000)  # milisegundos
+        
     log = RequestLog(
         request_id=g.get('request_id'),
         path=request.path,
@@ -113,6 +124,7 @@ def after_request_log(response):
         timestamp_return_firebase=g.get('timestamp_return_firebase'),
         timestamp_response_sent=datetime.datetime.now(datetime.timezone.utc),
         status_code=response.status_code,
+        response_time_ms=response_time_ms
     )
     db.session.add(log)
     db.session.commit()
