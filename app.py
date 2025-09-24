@@ -21,6 +21,7 @@ from components.ubicacion.routes import ubicacion_bp
 from components.etiquetas.routes import etiquetas_bp
 from dotenv import load_dotenv
 from waitress import serve
+from logs.util import before_request_log, after_request_log
 
 import firebase_admin
 #
@@ -75,6 +76,10 @@ app.register_blueprint(qr_bp)
 app.register_blueprint(pdf_bp)
 app.register_blueprint(ubicacion_bp)
 app.register_blueprint(etiquetas_bp, url_prefix='/api/etiquetas')
+
+
+app.before_request(before_request_log)
+app.after_request(after_request_log)
 # MAIN
 # Inicializas socketio con la app
 socketio.init_app(app)
