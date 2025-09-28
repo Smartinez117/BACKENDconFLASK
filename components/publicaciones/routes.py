@@ -8,6 +8,7 @@ from components.publicaciones.services import (
     actualizar_publicacion,
     eliminar_publicacion,
     normalizar_texto,
+    obtener_info_principal_publicacion,
 )
 from components.publicaciones.services import subir_imagen_a_cloudinary
 
@@ -136,3 +137,57 @@ def publicaciones_usuario_actual():
     publicaciones = obtener_publicaciones_filtradas(id_usuario=usuario.id)
 
     return jsonify(publicaciones), 200
+
+
+
+#Obtener publicaciones para mapa interactivo
+@publicaciones_bp.route('/publicaciones/mapa', methods=['GET'])
+def get_publicaciones_mapa():
+    """Obtiene publicaciones con datos mínimos para el mapa interactivo."""
+    try:
+        lat = request.args.get('lat')
+        lon = request.args.get('lon')
+        radio = request.args.get('radio')
+
+        lat = float(lat) if lat else None
+        lon = float(lon) if lon else None
+        radio = float(radio) if radio else None
+
+        categoria = request.args.get('categoria')
+        etiquetas = request.args.get('etiquetas')
+        fecha_min = request.args.get('fecha_min')
+        fecha_max = request.args.get('fecha_max')
+        id_usuario = request.args.get('id_usuario')
+
+        etiquetas_lista = []
+        if etiquetas:
+            etiquetas_raw = etiquetas.lower().split(",")
+            etiquetas_lista = [normalizar_texto(e) for e in etiquetas_raw]
+
+        publicaciones = obtener_publicaciones_filtradas(
+            lat=lat,
+            lon=lon,
+            radio_km=radio,
+            categoria=categoria,
+            etiquetas=etiquetas_lista,
+            fecha_min=fecha_min,
+            fecha_max=fecha_max,
+            id_usuario=id_usuario
+        )
+
+        publicaciones_mapa = []
+        for pub in publicaciones:
+            info = obtener_info_principal_publicacion(pub["id"])
+            if "error" not in info:
+                publicaciones_mapa.append({
+                    "id": info["id"],
+                    "titulo": info["titulo"],
+                    "descripcion": info["descripcion"],
+                    "coordenadas": info["coordenadas"],
+                    "imagen_principal": info["imagen_principal"]
+                })
+
+        return jsonify(publicaciones_mapa), 200
+
+    except Exception as error:
+        return jsonify({'error': str(error)}), 400

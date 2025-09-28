@@ -317,3 +317,19 @@ def subir_imagen_a_cloudinary(file):
         return None
 
 #funcion usada en socket para la parte de notificaciones
+
+def obtener_info_principal_publicacion(id_publicacion):
+    """Devuelve título, descripción, coordenadas e imagen principal de una publicación."""
+    pub = Publicacion.query.get(id_publicacion)
+    if not pub:
+        return {'error': 'Publicación no encontrada'}
+
+    imagen_principal = pub.imagenes[0].url if pub.imagenes else None
+
+    return {
+        'id': pub.id,
+        'titulo': pub.titulo,
+        'descripcion': pub.descripcion,
+        'coordenadas': pub.coordenadas,
+        'imagen_principal': imagen_principal
+    }
