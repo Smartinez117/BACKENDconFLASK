@@ -20,7 +20,7 @@ from components.pdf.routes import pdf_bp
 from components.ubicacion.routes import ubicacion_bp
 from components.etiquetas.routes import etiquetas_bp
 from components.roles.routes import roles_bp
-
+from components.refugios.routes import overpass_bp
 
 from dotenv import load_dotenv
 import firebase_admin
@@ -77,6 +77,7 @@ app.register_blueprint(pdf_bp)
 app.register_blueprint(ubicacion_bp)
 app.register_blueprint(etiquetas_bp, url_prefix='/api/etiquetas')
 app.register_blueprint(roles_bp)
+app.register_blueprint(overpass_bp)
 # MAIN
 # Inicializas socketio con la app
 socketio.init_app(app)
