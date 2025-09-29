@@ -183,6 +183,7 @@ def get_publicaciones_mapa():
                     "id": info["id"],
                     "titulo": info["titulo"],
                     "descripcion": info["descripcion"],
+                    'categoria': info["categoria"],
                     "coordenadas": info["coordenadas"],
                     "imagen_principal": info["imagen_principal"]
                 })

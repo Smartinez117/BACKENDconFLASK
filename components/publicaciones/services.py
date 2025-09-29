@@ -330,6 +330,7 @@ def obtener_info_principal_publicacion(id_publicacion):
         'id': pub.id,
         'titulo': pub.titulo,
         'descripcion': pub.descripcion,
+        'categoria': pub.categoria,
         'coordenadas': pub.coordenadas,
         'imagen_principal': imagen_principal
     }
