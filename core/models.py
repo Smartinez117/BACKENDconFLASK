@@ -25,11 +25,20 @@ class Usuario(db.Model):
     slug = db.Column(db.String(150), unique=True, nullable=False)
     publicaciones = db.relationship('Publicacion', backref='usuario', lazy=True)
 
+
     def generar_slug(self):
-        """Genera un slug único basado en el nombre del usuario."""
-        base_slug = slugify(self.nombre)
-        unique_suffix = uuid.uuid4().hex[:6]  # ej: "772123"
-        self.slug = f"{base_slug}{unique_suffix}"
+        """Genera un slug único basado en el nombre del usuario (forzando str)."""
+        nombre = _to_str_safe(self.nombre)
+        try:
+            base_slug = slugify(nombre)
+            if not isinstance(base_slug, str):
+                base_slug = str(base_slug)
+        except Exception:
+            base_slug = 'u'
+        candidate = f"{base_slug}{uuid.uuid4().hex[:6]}"
+        while Usuario.query.filter_by(slug=candidate).first():
+            candidate = f"{base_slug}{uuid.uuid4().hex[:6]}"
+        self.slug = candidate
 
     def to_dict(self):
         """Convierte la publicación a un diccionario serializable."""
@@ -43,12 +52,40 @@ class Usuario(db.Model):
             "slug": self.slug
         }
 
+def _to_str_safe(v):
+        if v is None:
+            return ''
+        if isinstance(v, str):
+            return v
+        if isinstance(v, (bytes, bytearray)):
+            try:
+                return v.decode('utf-8')
+            except Exception:
+                return v.decode('latin-1', errors='replace')
+        if isinstance(v, memoryview):
+            try:
+                return v.tobytes().decode('utf-8')
+            except Exception:
+                return v.tobytes().decode('latin-1', errors='replace')
+        return str(v)
+    
+    
 @event.listens_for(Usuario, 'before_insert')
 def generar_slug_before_insert(mapper, connection, target):
-    if not target.slug:  # si no tiene slug
-        base_slug = slugify(target.nombre)
-        unique_suffix = uuid.uuid4().hex[:6]
-        target.slug = f"{base_slug}{unique_suffix}"
+    """Listener que normaliza nombre y genera un slug único antes de insertar."""
+    nombre = _to_str_safe(getattr(target, 'nombre', ''))
+    try:
+        base_slug = slugify(nombre)
+        if not isinstance(base_slug, str):
+            base_slug = str(base_slug)
+    except Exception:
+        base_slug = 'u'
+    candidate = f"{base_slug}{uuid.uuid4().hex[:6]}"
+    from sqlalchemy.orm import Session
+    sess = Session(bind=connection)
+    while sess.query(Usuario).filter_by(slug=candidate).first():
+        candidate = f"{base_slug}{uuid.uuid4().hex[:6]}"
+    target.slug = candidate
 
 class Etiqueta(db.Model):
     """Modelo de etiqueta para publicaciones."""

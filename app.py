@@ -1,3 +1,7 @@
+import builtins
+if not hasattr(builtins, "unicode"):
+    builtins.unicode = str
+
 import os
 import psycopg2
 from firebase_admin import credentials, auth as firebase_auth
