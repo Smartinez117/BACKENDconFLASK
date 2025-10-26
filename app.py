@@ -56,7 +56,14 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 migrate = Migrate(app, db)
 frontend_url = os.getenv("FRONTEND_URL", "*")  # * como fallback
-CORS(app, origins=[frontend_url])
+CORS(
+    app,
+    resources={r"/api/*": {"origins": [frontend_url]}},
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+)
+
 
 # Configuración a cloudinary
 # Cloudinary
