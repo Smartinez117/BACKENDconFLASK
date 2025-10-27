@@ -34,7 +34,7 @@ def crear_comentario(data):
             })
 
         db.session.commit()
-        return {"mensaje": "Comentario creado", "id": nuevo.id}, 201
+        return {"mensaje": "Comentario creado", "id": nuevo.id, "Comentario hecho":nuevo.descripcion}, 201
 
     except Exception as error:
         db.session.rollback()
