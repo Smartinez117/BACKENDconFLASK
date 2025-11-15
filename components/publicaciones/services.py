@@ -160,17 +160,22 @@ def obtener_publicaciones_filtradas(
     for pub in publicaciones:
         urls_imagenes = [img.url for img in pub.imagenes]
         etiquetas = [et.nombre for et in pub.etiquetas]
-
         resultado.append({
-                "id": pub.id,
-                "titulo": pub.titulo,
-                "localidad": pub.localidad.nombre if pub.localidad else None,  # traemos el nombre
-                "categoria": pub.categoria,
-                "imagenes": urls_imagenes,
-                "etiquetas": etiquetas
-            })
+            "id": pub.id,
+            "titulo": pub.titulo,
+            "localidad": pub.localidad.nombre if pub.localidad else None,
+            "categoria": pub.categoria,
+            "imagenes": urls_imagenes,
+            "etiquetas": etiquetas,
+            "fecha_creacion": (
+                pub.fecha_creacion.astimezone(zona_arg).isoformat()
+                if pub.fecha_creacion else None
+            ),
+        })
+
 
     return resultado
+
 
 
 def obtener_todas_publicaciones():
@@ -191,15 +196,19 @@ def obtener_todas_publicaciones():
         for pub in publicaciones:
             primer_imagen = pub.imagenes[0].url if pub.imagenes else None
             etiquetas = [et.nombre for et in pub.etiquetas]
-
             resultado.append({
                 "id": pub.id,
                 "titulo": pub.titulo,
-                "localidad": pub.localidad.nombre if pub.localidad else None,  # traemos el nombre
+                "localidad": pub.localidad.nombre if pub.localidad else None,
                 "categoria": pub.categoria,
                 "imagenes": primer_imagen,
-                "etiquetas": etiquetas
+                "etiquetas": etiquetas,
+                "fecha_creacion": (
+                    pub.fecha_creacion.astimezone(zona_arg).isoformat()
+                    if pub.fecha_creacion else None
+                ),
             })
+
 
         return resultado
 
