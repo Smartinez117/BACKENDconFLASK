@@ -120,6 +120,8 @@ class Publicacion(db.Model):
     imagenes = db.relationship('Imagen', backref='publicacion', lazy='select')
     localidad = db.relationship("Localidad", backref="publicaciones")
     reportes = db.relationship('Reporte',backref='publicacion',cascade="all, delete-orphan",passive_deletes=True)
+    
+    estado = db.Column(db.Integer, default=0)
 
     def to_dict(self):
         """Convierte la publicación a un diccionario serializable."""
@@ -133,6 +135,7 @@ class Publicacion(db.Model):
             "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
             "fecha_modificacion": self.fecha_modificacion.isoformat() if self.fecha_modificacion else None,
             "coordenadas": self.coordenadas,
+            "estado": self.estado,
             "etiquetas": [etiqueta.nombre for etiqueta in self.etiquetas],  # asumiendo que `Etiqueta` tiene `nombre`
             "imagenes": [img.url for img in self.imagenes],  # asumiendo que `Imagen` tiene `url`
             "localidad": self.localidad.nombre if self.localidad else None

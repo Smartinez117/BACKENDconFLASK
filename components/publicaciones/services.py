@@ -118,6 +118,7 @@ def obtener_publicaciones_filtradas(
         joinedload(Publicacion.etiquetas),
         joinedload(Publicacion.localidad)
     )
+    query = query.filter((Publicacion.estado == 0) | (Publicacion.estado.is_(None)))
 
     if categoria:
         query = query.filter(func.lower(Publicacion.categoria) == categoria.lower())
@@ -189,9 +190,11 @@ def obtener_todas_publicaciones():
                 joinedload(Publicacion.localidad)  # cargamos la relación Localidad
             )
             .order_by(Publicacion.fecha_creacion.desc())
+            .filter((Publicacion.estado == 0) | (Publicacion.estado.is_(None)))
             .all()
         )
-
+        
+        
         resultado = []
         for pub in publicaciones:
             primer_imagen = pub.imagenes[0].url if pub.imagenes else None
@@ -343,3 +346,48 @@ def obtener_info_principal_publicacion(id_publicacion):
         'coordenadas': pub.coordenadas,
         'imagen_principal': imagen_principal
     }
+    
+    
+    
+def obtener_publicaciones_por_usuario(id_usuario):
+    publicaciones = (
+        db.session.query(Publicacion)
+        .options(
+            joinedload(Publicacion.imagenes),
+            joinedload(Publicacion.etiquetas),
+            joinedload(Publicacion.localidad)
+        )
+        .filter(Publicacion.id_usuario == id_usuario)
+        .order_by(Publicacion.fecha_creacion.desc())
+        .all()
+    )
+
+    resultado = []
+    for pub in publicaciones:
+        resultado.append(pub.to_dict())
+
+    return resultado
+
+
+def archivar_publicacion(id_publicacion):
+    pub = Publicacion.query.get(id_publicacion)
+    if not pub:
+        return jsonify({"error": "Publicación no encontrada"}), 404
+    
+    pub.estado = 1
+    pub.fecha_modificacion = datetime.now(timezone.utc)
+    db.session.commit()
+
+    return jsonify({"mensaje": "Publicación archivada"}), 200
+
+
+def desarchivar_publicacion(id_publicacion):
+    pub = Publicacion.query.get(id_publicacion)
+    if not pub:
+        return jsonify({"error": "Publicación no encontrada"}), 404
+    
+    pub.estado = 0
+    pub.fecha_modificacion = datetime.now(timezone.utc)
+    db.session.commit()
+
+    return jsonify({"mensaje": "Publicación archivada"}), 200

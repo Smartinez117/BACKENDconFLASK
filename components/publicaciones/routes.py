@@ -1,8 +1,11 @@
 from auth.services import require_auth
 from flask import Blueprint, request, jsonify, g
 from components.publicaciones.services import (
+    archivar_publicacion,
+    desarchivar_publicacion,
     obtener_publicacion_por_id,
     obtener_publicaciones_filtradas,
+    obtener_publicaciones_por_usuario,
     obtener_todas_publicaciones,
     crear_publicacion,
     actualizar_publicacion,
@@ -134,7 +137,7 @@ def publicaciones_usuario_actual():
     """Obtiene todas las publicaciones del usuario autenticado."""
     usuario = g.usuario_actual
 
-    publicaciones = obtener_publicaciones_filtradas(id_usuario=usuario.id)
+    publicaciones = obtener_publicaciones_por_usuario(usuario.id)
 
     return jsonify(publicaciones), 200
 
@@ -190,5 +193,26 @@ def get_publicaciones_mapa():
 
         return jsonify(publicaciones_mapa), 200
 
+    except Exception as error:
+        return jsonify({'error': str(error)}), 400
+    
+    
+
+@publicaciones_bp.route('/publicaciones/<int:id_publicacion>/archivar', methods=['PATCH'])
+def archivar(id_publicacion):
+    try:
+        archivar_publicacion(id_publicacion)
+    
+        return jsonify({"mensaje": "Publicación archivada"}), 200
+    except Exception as error:
+        return jsonify({'error': str(error)}), 400
+
+
+@publicaciones_bp.route('/publicaciones/<int:id_publicacion>/desarchivar', methods=['PATCH'])
+def desarchivar(id_publicacion):
+    try:
+        desarchivar_publicacion(id_publicacion)
+    
+        return jsonify({"mensaje": "Publicación archivada"}), 200
     except Exception as error:
         return jsonify({'error': str(error)}), 400
