@@ -110,7 +110,9 @@ def obtener_publicaciones_filtradas(
         etiquetas=None,
         fecha_min=None,
         fecha_max=None,
-        id_usuario=None
+        id_usuario=None,
+        offset=0,
+        limit=12
     ):
     """Obtiene publicaciones filtradas por ubicación, categoría, etiquetas, fechas o usuario."""
     query = db.session.query(Publicacion).options(
@@ -149,6 +151,7 @@ def obtener_publicaciones_filtradas(
 
 
     query = query.order_by(Publicacion.fecha_creacion.desc())
+    query = query.offset(offset).limit(limit)
     publicaciones = query.all()
 
     if lat is not None and lon is not None and radio_km is not None:
@@ -179,7 +182,7 @@ def obtener_publicaciones_filtradas(
 
 
 
-def obtener_todas_publicaciones():
+def obtener_todas_publicaciones(offset=0, limit=12):
     """Obtiene todas las publicaciones ordenadas por fecha de creación."""
     try:
         publicaciones = (
@@ -191,6 +194,8 @@ def obtener_todas_publicaciones():
             )
             .order_by(Publicacion.fecha_creacion.desc())
             .filter((Publicacion.estado == 0) | (Publicacion.estado.is_(None)))
+            .offset(offset)
+            .limit(limit)
             .all()
         )
         

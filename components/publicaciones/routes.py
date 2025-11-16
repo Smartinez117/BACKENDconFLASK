@@ -40,7 +40,10 @@ def get_publicacion(id_publicacion):
 @publicaciones_bp.route('/publicaciones', methods=['GET'])
 def get_publicaciones():
     """Obtiene todas las publicaciones para el home."""
-    publicacion = obtener_todas_publicaciones()
+    page = int(request.args.get("page", 0))
+    limit = int(request.args.get("limit", 12))
+    offset = page * limit
+    publicacion = obtener_todas_publicaciones(offset=offset, limit=limit)
     return jsonify(publicacion), 200
 
 
@@ -65,6 +68,10 @@ def get_publicaciones_filtradas():
         fecha_max = request.args.get('fecha_max')  # formato: YYYY-MM-DD
         id_usuario = request.args.get('id_usuario')
 
+        page = int(request.args.get("page", 0))
+        limit = int(request.args.get("limit", 12))
+        offset = page * limit
+        
         etiquetas_lista = []
         if etiquetas:
             etiquetas_raw = etiquetas.lower().split(",")
@@ -78,7 +85,9 @@ def get_publicaciones_filtradas():
             etiquetas=etiquetas_lista,
             fecha_min=fecha_min,
             fecha_max=fecha_max,
-            id_usuario=id_usuario
+            id_usuario=id_usuario,
+            offset=offset,
+            limit=limit
         )
 
         return jsonify(publicaciones), 200
