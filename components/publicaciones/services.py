@@ -110,7 +110,9 @@ def obtener_publicaciones_filtradas(
         etiquetas=None,
         fecha_min=None,
         fecha_max=None,
-        id_usuario=None
+        id_usuario=None,
+        offset=0,
+        limit=12
     ):
     """Obtiene publicaciones filtradas por ubicación, categoría, etiquetas, fechas o usuario."""
     query = db.session.query(Publicacion).options(
@@ -118,6 +120,7 @@ def obtener_publicaciones_filtradas(
         joinedload(Publicacion.etiquetas),
         joinedload(Publicacion.localidad)
     )
+    query = query.filter((Publicacion.estado == 0) | (Publicacion.estado.is_(None)))
 
     if categoria:
         query = query.filter(func.lower(Publicacion.categoria) == categoria.lower())
@@ -148,6 +151,7 @@ def obtener_publicaciones_filtradas(
 
 
     query = query.order_by(Publicacion.fecha_creacion.desc())
+    query = query.offset(offset).limit(limit)
     publicaciones = query.all()
 
     if lat is not None and lon is not None and radio_km is not None:
@@ -178,7 +182,7 @@ def obtener_publicaciones_filtradas(
 
 
 
-def obtener_todas_publicaciones():
+def obtener_todas_publicaciones(offset=0, limit=12):
     """Obtiene todas las publicaciones ordenadas por fecha de creación."""
     try:
         publicaciones = (
@@ -189,9 +193,13 @@ def obtener_todas_publicaciones():
                 joinedload(Publicacion.localidad)  # cargamos la relación Localidad
             )
             .order_by(Publicacion.fecha_creacion.desc())
+            .filter((Publicacion.estado == 0) | (Publicacion.estado.is_(None)))
+            .offset(offset)
+            .limit(limit)
             .all()
         )
-
+        
+        
         resultado = []
         for pub in publicaciones:
             primer_imagen = pub.imagenes[0].url if pub.imagenes else None
@@ -343,3 +351,48 @@ def obtener_info_principal_publicacion(id_publicacion):
         'coordenadas': pub.coordenadas,
         'imagen_principal': imagen_principal
     }
+    
+    
+    
+def obtener_publicaciones_por_usuario(id_usuario):
+    publicaciones = (
+        db.session.query(Publicacion)
+        .options(
+            joinedload(Publicacion.imagenes),
+            joinedload(Publicacion.etiquetas),
+            joinedload(Publicacion.localidad)
+        )
+        .filter(Publicacion.id_usuario == id_usuario)
+        .order_by(Publicacion.fecha_creacion.desc())
+        .all()
+    )
+
+    resultado = []
+    for pub in publicaciones:
+        resultado.append(pub.to_dict())
+
+    return resultado
+
+
+def archivar_publicacion(id_publicacion):
+    pub = Publicacion.query.get(id_publicacion)
+    if not pub:
+        return jsonify({"error": "Publicación no encontrada"}), 404
+    
+    pub.estado = 1
+    pub.fecha_modificacion = datetime.now(timezone.utc)
+    db.session.commit()
+
+    return jsonify({"mensaje": "Publicación archivada"}), 200
+
+
+def desarchivar_publicacion(id_publicacion):
+    pub = Publicacion.query.get(id_publicacion)
+    if not pub:
+        return jsonify({"error": "Publicación no encontrada"}), 404
+    
+    pub.estado = 0
+    pub.fecha_modificacion = datetime.now(timezone.utc)
+    db.session.commit()
+
+    return jsonify({"mensaje": "Publicación archivada"}), 200

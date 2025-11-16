@@ -1,8 +1,11 @@
 from auth.services import require_auth
 from flask import Blueprint, request, jsonify, g
 from components.publicaciones.services import (
+    archivar_publicacion,
+    desarchivar_publicacion,
     obtener_publicacion_por_id,
     obtener_publicaciones_filtradas,
+    obtener_publicaciones_por_usuario,
     obtener_todas_publicaciones,
     crear_publicacion,
     actualizar_publicacion,
@@ -37,7 +40,10 @@ def get_publicacion(id_publicacion):
 @publicaciones_bp.route('/publicaciones', methods=['GET'])
 def get_publicaciones():
     """Obtiene todas las publicaciones para el home."""
-    publicacion = obtener_todas_publicaciones()
+    page = int(request.args.get("page", 0))
+    limit = int(request.args.get("limit", 12))
+    offset = page * limit
+    publicacion = obtener_todas_publicaciones(offset=offset, limit=limit)
     return jsonify(publicacion), 200
 
 
@@ -62,6 +68,10 @@ def get_publicaciones_filtradas():
         fecha_max = request.args.get('fecha_max')  # formato: YYYY-MM-DD
         id_usuario = request.args.get('id_usuario')
 
+        page = int(request.args.get("page", 0))
+        limit = int(request.args.get("limit", 12))
+        offset = page * limit
+        
         etiquetas_lista = []
         if etiquetas:
             etiquetas_raw = etiquetas.lower().split(",")
@@ -75,7 +85,9 @@ def get_publicaciones_filtradas():
             etiquetas=etiquetas_lista,
             fecha_min=fecha_min,
             fecha_max=fecha_max,
-            id_usuario=id_usuario
+            id_usuario=id_usuario,
+            offset=offset,
+            limit=limit
         )
 
         return jsonify(publicaciones), 200
@@ -134,7 +146,7 @@ def publicaciones_usuario_actual():
     """Obtiene todas las publicaciones del usuario autenticado."""
     usuario = g.usuario_actual
 
-    publicaciones = obtener_publicaciones_filtradas(id_usuario=usuario.id)
+    publicaciones = obtener_publicaciones_por_usuario(usuario.id)
 
     return jsonify(publicaciones), 200
 
@@ -190,5 +202,26 @@ def get_publicaciones_mapa():
 
         return jsonify(publicaciones_mapa), 200
 
+    except Exception as error:
+        return jsonify({'error': str(error)}), 400
+    
+    
+
+@publicaciones_bp.route('/publicaciones/<int:id_publicacion>/archivar', methods=['PATCH'])
+def archivar(id_publicacion):
+    try:
+        archivar_publicacion(id_publicacion)
+    
+        return jsonify({"mensaje": "Publicación archivada"}), 200
+    except Exception as error:
+        return jsonify({'error': str(error)}), 400
+
+
+@publicaciones_bp.route('/publicaciones/<int:id_publicacion>/desarchivar', methods=['PATCH'])
+def desarchivar(id_publicacion):
+    try:
+        desarchivar_publicacion(id_publicacion)
+    
+        return jsonify({"mensaje": "Publicación archivada"}), 200
     except Exception as error:
         return jsonify({'error': str(error)}), 400
