@@ -1,9 +1,11 @@
 #endpoints que solo necesitara el adminitrador
 # components/funcionesAdmin/routes.py
 from flask import Blueprint, request, jsonify
-from core.models import db, Usuario
+from core.models import db, Usuario, Publicacion
 from components.funcionesAdmin.services import actualizar_datos_usuario
 from firebase_admin import auth
+from datetime import datetime
+
 
 
 # Blueprint exclusivo para funciones de admin
@@ -74,3 +76,76 @@ def eliminar_usuario(id_usuario):
     except Exception as error:
         return jsonify({"error": f"No se pudo borrar el usuario: {str(error)}"}), 500
 
+
+@admin_bp.route('/admin/publicaciones', methods=['GET'])
+def admin_obtener_publicaciones():
+    """
+    Devuelve publicaciones con datos del usuario + permite filtrado para administradores.
+    """
+    try:
+        # Obtener parámetros de filtro
+        id_usuario = request.args.get("id_usuario", type=int)
+        categoria = request.args.get("categoria", type=str)
+        estado = request.args.get("estado", type=str)
+        provincia = request.args.get("provincia", type=str)
+        departamento = request.args.get("departamento", type=str)
+        localidad = request.args.get("localidad", type=str)
+        fecha_desde = request.args.get("fecha_desde", type=str)
+        fecha_hasta = request.args.get("fecha_hasta", type=str)
+
+        # Base query
+        query = Publicacion.query
+
+        # Filtros dinámicos
+        if id_usuario:
+            query = query.filter(Publicacion.id_usuario == id_usuario)
+
+        if categoria:
+            query = query.filter(Publicacion.categoria == categoria)
+
+        if estado:
+            query = query.filter(Publicacion.estado == estado)
+
+        if provincia:
+            query = query.filter(Publicacion.provincia == provincia)
+
+        if departamento:
+            query = query.filter(Publicacion.departamento == departamento)
+
+        if localidad:
+            query = query.filter(Publicacion.localidad == localidad)
+
+        if fecha_desde:
+            try:
+                fecha_ini = datetime.strptime(fecha_desde, "%Y-%m-%d")
+                query = query.filter(Publicacion.fecha >= fecha_ini)
+            except:
+                pass
+
+        if fecha_hasta:
+            try:
+                fecha_fin = datetime.strptime(fecha_hasta, "%Y-%m-%d")
+                query = query.filter(Publicacion.fecha <= fecha_fin)
+            except:
+                pass
+
+        publicaciones = query.all()
+
+        # Armar JSON
+        resultado = []
+        for pub in publicaciones:
+            usuario = pub.usuario  # relationship ya disponible
+
+            resultado.append({
+                **pub.to_dict(),
+                "usuario": {
+                    "id": usuario.id if usuario else None,
+                    "nombre": usuario.nombre if usuario else None,
+                    "email": usuario.email if usuario else None,
+                }
+            })
+
+        return jsonify(resultado), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

@@ -23,7 +23,6 @@ class Usuario(db.Model):
     telefono_numero_local = db.Column(db.BigInteger)
     descripcion = db.Column(db.Text)
     slug = db.Column(db.String(150), unique=True, nullable=False)
-    publicaciones = db.relationship('Publicacion', backref='usuario', lazy=True)
     estado = db.Column(db.String(10), nullable=False, default="activo")
 
     # Cascada para publicaciones, comentarios y reportes
@@ -159,6 +158,7 @@ class Publicacion(db.Model):
     reportes = db.relationship('Reporte', backref='publicacion', cascade="all, delete-orphan", passive_deletes=True)
     
     estado = db.Column(db.Integer, default=0)
+  
 
 
     def to_dict(self):
