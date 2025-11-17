@@ -42,50 +42,6 @@ def obtener_usuario_por_slug_route(slug):
         return jsonify({'error': 'Usuario no encontrado'}), 404
     return jsonify(usuario), 200
 
-#Endpoint para poder banear usuarios
-@usuarios_bp.route('/api/<int:id_usuario>/ban', methods=['PATCH'])
-@require_auth
-def banear_usuario(id_usuario):
-    '''Busca un usuario por su ID y lo banea si no es admin.'''
-    usuario = Usuario.query.get_or_404(id_usuario)
-
-    if usuario.rol == "admin":
-        return jsonify({"error": "No se puede banear a otro administrador"}), 403
-
-    try:
-        # Deshabilitar el usuario en Firebase
-        auth.update_user(usuario.firebase_uid, disabled=True)
-        usuario.rol = "baneado"
-        db.session.commit()
-
-        return jsonify({"mensaje": f"Usuario {usuario.nombre} baneado correctamente"}), 200
-    except Exception as error:
-        return jsonify({"error": f"No se pudo banear al usuario: {str(error)}"}), 500
-
-#Endpoint para desbanear usuarios
-@usuarios_bp.route('/api/<int:id_usuario>/desban', methods=['PATCH'])
-@require_auth
-def desbanear_usuario(id_usuario):
-    '''Busca un usuario por su ID y lo desbanea si no es admin.'''
-    # Buscar usuario en tu base de datos
-    usuario = Usuario.query.get_or_404(id_usuario)
-
-    # Si ya es admin, no debería estar baneado pero controlamos igual
-    if usuario.rol == "admin":
-        return jsonify({"error": "Los administradores no pueden ser baneados/desbaneados"}), 403
-
-    try:
-        # Rehabilitar al usuario en Firebase
-        auth.update_user(usuario.firebase_uid, disabled=False)
-
-        # Actualizar el rol en tu DB local
-        usuario.rol = "usuario"
-        db.session.commit()
-
-        return jsonify({"mensaje": f"Usuario {usuario.nombre} desbaneado correctamente"}), 200
-
-    except Exception as error:
-        return jsonify({"error": f"No se pudo desbanear al usuario: {str(error)}"}), 500
 
 @usuarios_bp.route('/usuario/<int:id_usuario>', methods=['DELETE'])
 def eliminar_usuario(id_usuario):
@@ -207,9 +163,6 @@ def usuario_desconectado(sid):
     '''Elimina un usuario del diccionario de usuarios conectados.'''
     userconnected.pop(sid,None)
     #print('usuarios conectados:',userconnected)
-
-
-
 
 # Endpoint para obtener publicaciones de un usuario por su id
 #idUsuario : es el id traido desde el endpoint

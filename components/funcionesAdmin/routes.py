@@ -3,6 +3,8 @@
 from flask import Blueprint, request, jsonify
 from core.models import db, Usuario
 from components.funcionesAdmin.services import actualizar_datos_usuario
+from firebase_admin import auth
+
 
 # Blueprint exclusivo para funciones de admin
 admin_bp = Blueprint('admin', __name__)
@@ -26,4 +28,49 @@ def admin_actualizar_usuario(id_usuario):
         return jsonify(usuario_actualizado), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 400
+
+# Suspender usuario
+
+@admin_bp.route('/admin/usuarios/<int:id_usuario>/suspender', methods=['PATCH'])
+def suspender_usuario(id_usuario):
+    usuario = Usuario.query.get_or_404(id_usuario)
+    try:
+        auth.update_user(usuario.firebase_uid, disabled=True)
+        usuario.estado = "suspendido"
+        db.session.commit()
+        return jsonify({
+            "mensaje": f"Usuario {usuario.nombre} suspendido correctamente",
+            "usuario": {"id": usuario.id, "estado": usuario.estado}
+        }), 200
+    except Exception as error:
+        return jsonify({"error": f"No se pudo suspender al usuario: {str(error)}"}), 500
+
+# Activar usuario
+@admin_bp.route('/admin/usuarios/<int:id_usuario>/activar', methods=['PATCH'])
+def activar_usuario(id_usuario):
+    usuario = Usuario.query.get_or_404(id_usuario)
+    try:
+        auth.update_user(usuario.firebase_uid, disabled=False)
+        usuario.estado = "activo"
+        db.session.commit()
+        return jsonify({
+            "mensaje": f"Usuario {usuario.nombre} activado correctamente",
+            "usuario": {"id": usuario.id, "estado": usuario.estado}
+        }), 200
+    except Exception as error:
+        return jsonify({"error": f"No se pudo activar al usuario: {str(error)}"}), 500
+    
+# Borrar usuario
+@admin_bp.route('/admin/usuarios/<int:id_usuario>', methods=['DELETE'])
+def eliminar_usuario(id_usuario):
+    usuario = Usuario.query.get_or_404(id_usuario)
+    try:
+        db.session.delete(usuario)
+        db.session.commit()
+        return jsonify({
+            "mensaje": f"Usuario {usuario.nombre} borrado correctamente",
+            "usuario": {"id": usuario.id}
+        }), 200
+    except Exception as error:
+        return jsonify({"error": f"No se pudo borrar el usuario: {str(error)}"}), 500
 
