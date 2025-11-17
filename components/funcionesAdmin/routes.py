@@ -29,6 +29,7 @@ def admin_actualizar_usuario(id_usuario):
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
+# Suspender usuario
 
 @admin_bp.route('/admin/usuarios/<int:id_usuario>/suspender', methods=['PATCH'])
 def suspender_usuario(id_usuario):
@@ -44,7 +45,7 @@ def suspender_usuario(id_usuario):
     except Exception as error:
         return jsonify({"error": f"No se pudo suspender al usuario: {str(error)}"}), 500
 
-
+# Activar usuario
 @admin_bp.route('/admin/usuarios/<int:id_usuario>/activar', methods=['PATCH'])
 def activar_usuario(id_usuario):
     usuario = Usuario.query.get_or_404(id_usuario)
@@ -58,3 +59,18 @@ def activar_usuario(id_usuario):
         }), 200
     except Exception as error:
         return jsonify({"error": f"No se pudo activar al usuario: {str(error)}"}), 500
+    
+# Borrar usuario
+@admin_bp.route('/admin/usuarios/<int:id_usuario>', methods=['DELETE'])
+def eliminar_usuario(id_usuario):
+    usuario = Usuario.query.get_or_404(id_usuario)
+    try:
+        db.session.delete(usuario)
+        db.session.commit()
+        return jsonify({
+            "mensaje": f"Usuario {usuario.nombre} borrado correctamente",
+            "usuario": {"id": usuario.id}
+        }), 200
+    except Exception as error:
+        return jsonify({"error": f"No se pudo borrar el usuario: {str(error)}"}), 500
+
