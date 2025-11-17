@@ -24,6 +24,7 @@ class Usuario(db.Model):
     descripcion = db.Column(db.Text)
     slug = db.Column(db.String(150), unique=True, nullable=False)
     publicaciones = db.relationship('Publicacion', backref='usuario', lazy=True)
+    estado = db.Column(db.String(10), nullable=False, default="activo")
 
 
     def generar_slug(self):
@@ -49,7 +50,8 @@ class Usuario(db.Model):
             "rol": self.rol_obj.nombre if self.rol_obj else None,
             "fecha_registro": self.fecha_registro.isoformat() if self.fecha_registro else None,
             "foto_perfil_url": self.foto_perfil_url,
-            "slug": self.slug
+            "slug": self.slug,
+            "estado": self.estado
         }
 
 def _to_str_safe(v):
