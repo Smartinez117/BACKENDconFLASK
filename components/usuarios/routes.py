@@ -164,9 +164,6 @@ def usuario_desconectado(sid):
     userconnected.pop(sid,None)
     #print('usuarios conectados:',userconnected)
 
-
-
-
 # Endpoint para obtener publicaciones de un usuario por su id
 #idUsuario : es el id traido desde el endpoint
 #id_usuario : es un atributo de cada publicacion, se ven parecidos pero la diferencia esta en el guión bajo
