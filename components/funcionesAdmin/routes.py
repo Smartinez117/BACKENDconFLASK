@@ -80,7 +80,7 @@ def eliminar_usuario(id_usuario):
 @admin_bp.route('/admin/publicaciones', methods=['GET'])
 def admin_obtener_publicaciones():
     """
-    Devuelve publicaciones con datos del usuario + permite filtrado para administradores.
+    Devuelve publicaciones con datos del usuario + permite filtrado para administradores + paginado.
     """
     try:
         # Obtener parámetros de filtro
@@ -92,6 +92,10 @@ def admin_obtener_publicaciones():
         localidad = request.args.get("localidad", type=str)
         fecha_desde = request.args.get("fecha_desde", type=str)
         fecha_hasta = request.args.get("fecha_hasta", type=str)
+
+        # Parámetros de paginado
+        page = request.args.get("page", default=1, type=int)
+        limit = request.args.get("limit", default=15, type=int)
 
         # Base query
         query = Publicacion.query
@@ -129,7 +133,14 @@ def admin_obtener_publicaciones():
             except:
                 pass
 
-        publicaciones = query.all()
+        # Orden por fecha descendente
+        query = query.order_by(Publicacion.fecha_creacion.desc())
+
+        # Total antes de paginar
+        total = query.count()
+
+        # Aplicar paginado
+        publicaciones = query.offset((page - 1) * limit).limit(limit).all()
 
         # Armar JSON
         resultado = []
@@ -145,7 +156,12 @@ def admin_obtener_publicaciones():
                 }
             })
 
-        return jsonify(resultado), 200
+        return jsonify({
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "publicaciones": resultado
+        }), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
