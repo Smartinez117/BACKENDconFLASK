@@ -42,7 +42,8 @@ def get_usuario (id_usuario):
         'telefono_pais':usuario.telefono_pais,
         'telefono_numero_local':usuario.telefono_numero_local,
         'descripcion': usuario.descripcion,
-        'slug': usuario.slug
+        'slug': usuario.slug,
+        'estado': usuario.estado
 
     }
 
@@ -67,7 +68,9 @@ def obtener_usuario_por_slug(slug):
         'telefono_pais': usuario.telefono_pais,
         'telefono_numero_local': usuario.telefono_numero_local,
         'descripcion': usuario.descripcion,
-        'slug': usuario.slug
+        'slug': usuario.slug,
+        'estado': usuario.estado
+
     }
 
 
@@ -132,5 +135,6 @@ def obtener_usuario_por_uid(uid):
         'telefono_pais': usuario.telefono_pais,
         'telefono_numero_local': usuario.telefono_numero_local,
         'descripcion': usuario.descripcion,
-        'slug': usuario.slug
+        'slug': usuario.slug,
+        'estado': usuario.estado
     }

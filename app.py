@@ -25,6 +25,8 @@ from components.ubicacion.routes import ubicacion_bp
 from components.etiquetas.routes import etiquetas_bp
 from components.roles.routes import roles_bp
 from components.refugios.routes import overpass_bp
+from components.funcionesAdmin.routes import admin_bp
+
 
 from dotenv import load_dotenv
 import firebase_admin
@@ -80,8 +82,8 @@ migrate = Migrate(app, db)
 frontend_url = os.getenv("FRONTEND_URL", "*")  # * como fallback
 CORS(
     app,
-    resources={r"/*": {"origins": [frontend_url]}},
-    supports_credentials=True,
+    resources={r"/*": {"origins": "*"}},
+    supports_credentials=False,
     allow_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 )
@@ -107,6 +109,21 @@ app.register_blueprint(ubicacion_bp)
 app.register_blueprint(etiquetas_bp, url_prefix='/api/etiquetas')
 app.register_blueprint(roles_bp)
 app.register_blueprint(overpass_bp)
+app.register_blueprint(admin_bp, url_prefix="/api")
+
+
+@app.before_request
+def handle_options():
+    if request.method == "OPTIONS":
+        resp = app.make_default_options_response()
+        headers = resp.headers
+
+        headers["Access-Control-Allow-Origin"] = "*"
+        headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+
+        return resp
+
 # MAIN
 # Inicializas socketio con la app
 socketio.init_app(app)
