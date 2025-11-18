@@ -22,9 +22,11 @@ def crear_comentario(data):
         # Obtener datos necesarios
         publicacion = Publicacion.query.get(data['id_publicacion'])
         usuario_comentador = Usuario.query.get(data['id_usuario'])
+        print("ya abremos pasado la parte de crear el comentario ")
 
         if publicacion and usuario_comentador and int(publicacion.id_usuario) != int(usuario_comentador.id):
             # Usar la función reutilizable para crear la notificación
+            print("llegamos aca donde se crearia la notificacion ")
             crear_notificacion({
                 "id_usuario": publicacion.id_usuario,
                 "titulo": f"{usuario_comentador.nombre} comentó tu publicación",

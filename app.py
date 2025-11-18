@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 import builtins
 if not hasattr(builtins, "unicode"):
     builtins.unicode = str

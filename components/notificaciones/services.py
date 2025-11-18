@@ -10,6 +10,7 @@ zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
 
 def crear_notificacion(data):#suponog que aca habria que agregar lo del id de la publicacion
     """Crea una nueva notificación en la base de datos."""
+    print("se ejecuto la funcion de notificaciones")
     try:
         nueva = Notificacion(
             id_usuario=data['id_usuario'],
@@ -22,7 +23,12 @@ def crear_notificacion(data):#suponog que aca habria que agregar lo del id de la
         )
         db.session.add(nueva)
         db.session.commit()
+        print("pre notificcacioin")
+        notificar(nueva)
+        print("debio ejecutrase la funcion de notificar con los sockets")
+    
         return {"mensaje": "Notificación creada", "id": nueva.id}, 201
+        
     except Exception as error:
         db.session.rollback()
         return {"error": str(error)}, 400
@@ -95,17 +101,23 @@ def noti_to_dict(notificacion):
 #iria de la mano con la funcion de crear notificacion asique la dejare aqui notado
 def notificar(newnotificacion):
     """Envía una notificación en tiempo real al usuario correspondiente usando sockets."""
+    print("id publicacion",newnotificacion.id_publicacion)
     id_owner = obtener_user_por_idpublicacion(newnotificacion.id_publicacion)
+    print("id owner",id_owner)
     user = get_usuario(id_owner)
-    uid_user= user.firebase_uid
-    if  uid_user in userconnected:     
+    print("user",user)
+    uid_user= user["firebase_uid"]
+    print("uis_user",uid_user)
+    print(userconnected)
+    if  uid_user in userconnected:  
+        print("entro a la bifurcacion")   
         notification = {
             "titulo": newnotificacion.titulo,
             "descripcion": newnotificacion.descripcion,
             "id_publicacion" :newnotificacion.id_publicacion, # para redirigir al user a la publicacion
             "id_notificacion": newnotificacion.id  #para marcarla como leida
         }
-        socketio.emit('notificacion',notification,namespace='/notificacion/'+uid_user)
+        socketio.emit('notificacion',notification,room=uid_user,namespace='/notificacion')
 
 #en caso de que te conectes entonces le pides al back todas tus notificaciones:
 #esta la tendria que importar en la parte que cree para registrar a los user en la carpeta de users
@@ -115,13 +127,13 @@ def notificarconectado(iduser,uid_user):
     notificaciones_pendientes = obtener_notificaciones_por_usuario(iduser)
     if notificaciones_pendientes and uid_user in userconnected:
         for notification in notificaciones_pendientes:
-            socketio.emit('notificacion',notification,namespace='/notificacion/'+uid_user) 
+            socketio.emit('notificacion',notification,room=uid_user,namespace='/notificacion') 
 #esta va a enviar todas las notificaciones pendientes que tiene la cosa incluso
 #podemos enviarlas en orden soo modificando el query
 
 def obtener_user_por_idpublicacion(publicacion_id):
     """Obtiene el ID de usuario dueño de una publicación dado el ID de la publicación."""
-    publicacion = Publicacion.query(publicacion_id)
+    publicacion = Publicacion.query.get(publicacion_id)
     if publicacion:
         return publicacion.id_usuario
 
