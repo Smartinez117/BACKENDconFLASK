@@ -199,6 +199,26 @@ def obtener_publicaciones_usuario(idUsuario):
         return jsonify([pub.to_dict() for pub in publicaciones]), 200
     except Exception as error:
         return jsonify({'error': str(error)}), 400
+
+
+# Endpoint para verificar si un usuario es admin (role_id == 2)
+@usuarios_bp.route('/usuario/<string:uid>/is_admin', methods=['GET'])
+def es_admin(uid):
+    """Devuelve si el usuario con `uid` (firebase_uid) es administrador.
+
+    Respuesta JSON: { 'is_admin': true/false } o error si no existe el usuario.
+    """
+    # Obtener el usuario directamente desde la base de datos como modelo
+    usuario = Usuario.query.filter_by(firebase_uid=uid).first()
+
+    if not usuario:
+        return jsonify({'error': 'Usuario no encontrado'}), 404
+
+    # `role_id` almacena el id del rol; 2 == admin
+    is_admin = (getattr(usuario, 'role_id', None) == 2)
+
+
+    return jsonify({'is_admin': bool(is_admin)}), 200
     
 
 
