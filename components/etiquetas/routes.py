@@ -67,7 +67,7 @@ def actualizar_etiqueta(id_etiqueta):
     return jsonify({"id": etiqueta.id, "nombre": etiqueta.nombre})
 
 
-@etiquetas_bp.route('/<int:id>', methods=['DELETE'])
+@etiquetas_bp.route('/<int:id_etiqueta>', methods=['DELETE'])
 def eliminar_etiqueta(id_etiqueta):
     """Elimina una etiqueta por su ID."""
     etiqueta = Etiqueta.query.get(id_etiqueta)

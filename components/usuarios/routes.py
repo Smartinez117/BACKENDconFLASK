@@ -116,6 +116,8 @@ def get_usuarios():
         "pages": pagination.pages
     })
 
+
+
 #diccionario de usuarios conectados
 userconnected = {}
 sid_uid_map={}
