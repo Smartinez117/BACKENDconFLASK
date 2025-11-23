@@ -29,7 +29,7 @@ def crear_publicacion(data, usuario):
             id_usuario= usuario.id,
             id_locacion=data.get('id_locacion'),
             titulo=data.get('titulo'),
-            categoria=data.get('categoria'),
+            id_categoria=data.get('id_categoria'),
             descripcion=data.get('descripcion'),
             fecha_creacion=datetime.now(timezone.utc),
             fecha_modificacion=datetime.now(timezone.utc),
@@ -87,7 +87,7 @@ def obtener_publicacion_por_id(id_publicacion):
         'id_locacion': pub.id_locacion,
         'titulo': pub.titulo,
         'descripcion': pub.descripcion,
-        'categoria': pub.categoria,
+        'categoria': pub.categoria_obj.nombre if pub.categoria_obj else None,
         'etiquetas': etiquetas,
         'fecha_creacion': (
             pub.fecha_creacion.astimezone(zona_arg).isoformat()
