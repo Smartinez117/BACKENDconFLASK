@@ -10,6 +10,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from PIL import Image as PilImage
 import os
 from core.models import db, Publicacion, Imagen, Usuario
+from urllib.parse import urljoin
+from flask import has_app_context, current_app
 
 def generar_pdf_publicacion(id_publicacion):
     """Genera un archivo PDF con los datos de una publicación, incluyendo imagen,
@@ -100,7 +102,25 @@ def generar_pdf_publicacion(id_publicacion):
     y -= (h + 20)
 
     # Código QR (abajo derecha)
-    url = f"https://tusitio.com/publicacion/{id_publicacion}"
+    # Construir la URL del frontend desde config o variable de entorno
+    def _get_frontend_url():
+        frontend_url = None
+        try:
+            if has_app_context():
+                frontend_url = current_app.config.get('FRONTEND_URL')
+        except Exception:
+            frontend_url = None
+
+        if not frontend_url:
+            frontend_url = os.getenv('FRONTEND_URL')
+
+        if not frontend_url:
+            frontend_url = 'http://localhost:3000'
+
+        return frontend_url.rstrip('/')
+
+    base_frontend = _get_frontend_url()
+    url = urljoin(base_frontend + '/', f'publicacion/{id_publicacion}')
     qr = qrcode.make(url)
     qr_buffer = BytesIO()
     qr.save(qr_buffer, format="PNG")
@@ -109,14 +129,31 @@ def generar_pdf_publicacion(id_publicacion):
     qr_size = 230  # tamaño más grande del QR
     c.drawImage(ImageReader(qr_img), width - qr_size - 10, 20, width=qr_size, height=qr_size)
 
-    # Logo (abajo izquierda)
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..\.."))
-    logo_path = os.path.join(base_dir, "Logo.jpg")
+    # Logo (abajo izquierda). Permitir ruta configurable via config/env
+    def _get_logo_path():
+        # Priorizar configuración de Flask si existe
+        logo_path = None
+        try:
+            if has_app_context():
+                logo_path = current_app.config.get('APP_LOGO_PATH')
+        except Exception:
+            logo_path = None
+
+        if not logo_path:
+            logo_path = os.getenv('APP_LOGO_PATH')
+
+        if logo_path:
+            return os.path.abspath(logo_path)
+
+        # Fallback: buscar Logo.jpg en la raíz del proyecto (dos niveles arriba)
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        return os.path.join(base_dir, 'Logo.jpg')
+
+    logo_path = _get_logo_path()
     if os.path.exists(logo_path):
         try:
             logo_reader = ImageReader(logo_path)
             c.drawImage(logo_reader, 30, 30, width=80, height=80, preserveAspectRatio=True, mask='auto')
-            #print("✅ Logo dibujado correctamente.")
         except Exception as e:
             print("❌ Error dibujando el logo:", e)
     else:
