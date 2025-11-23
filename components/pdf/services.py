@@ -38,8 +38,15 @@ def generar_pdf_publicacion(id_publicacion):
     )
     style_title = styles['Title']
 
-    # Título
-    titulo = f"{publicacion.categoria.upper()}: {publicacion.titulo or ''}"
+    # --- CORRECCIÓN AQUÍ ---
+    # Obtenemos el nombre desde la relación categoria_obj
+    nombre_categoria = "SIN CATEGORÍA"
+    if publicacion.categoria_obj:
+        nombre_categoria = publicacion.categoria_obj.nombre
+
+    titulo = f"{nombre_categoria.upper()}: {publicacion.titulo or ''}"
+    # -----------------------
+
     p_titulo = Paragraph(titulo, style_title)
     w, h = p_titulo.wrap(width - 100, 50)
     p_titulo.drawOn(c, 50, y - h)
@@ -102,7 +109,6 @@ def generar_pdf_publicacion(id_publicacion):
     y -= (h + 20)
 
     # Código QR (abajo derecha)
-    # Construir la URL del frontend desde config o variable de entorno
     def _get_frontend_url():
         frontend_url = None
         try:
@@ -126,12 +132,11 @@ def generar_pdf_publicacion(id_publicacion):
     qr.save(qr_buffer, format="PNG")
     qr_buffer.seek(0)
     qr_img = PilImage.open(qr_buffer)
-    qr_size = 230  # tamaño más grande del QR
+    qr_size = 230 
     c.drawImage(ImageReader(qr_img), width - qr_size - 10, 20, width=qr_size, height=qr_size)
 
-    # Logo (abajo izquierda). Permitir ruta configurable via config/env
+    # Logo (abajo izquierda)
     def _get_logo_path():
-        # Priorizar configuración de Flask si existe
         logo_path = None
         try:
             if has_app_context():
@@ -145,7 +150,6 @@ def generar_pdf_publicacion(id_publicacion):
         if logo_path:
             return os.path.abspath(logo_path)
 
-        # Fallback: buscar Logo.jpg en la raíz del proyecto (dos niveles arriba)
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
         return os.path.join(base_dir, 'Logo.jpg')
 
@@ -158,8 +162,6 @@ def generar_pdf_publicacion(id_publicacion):
             print("❌ Error dibujando el logo:", e)
     else:
         print(f"❌ Logo NO encontrado en: {logo_path}")
-
-
 
     c.showPage()
     c.save()
@@ -182,14 +184,18 @@ def coordenadas_a_direccion(lat, lon):
         'User-Agent': 'RedemaBot/1.0 (tucorreo@example.com)'
     }
 
-    response = requests.get(url, params=params, headers=headers)
-    if response.status_code == 200:
-        data = response.json()
-        address = data.get('address', {})
-        partes = [
-            address.get('road'),
-            address.get('suburb'),
-            address.get('city') or address.get('town') or address.get('village'),
-        ]
-        return ', '.join([p for p in partes if p]) or "Ubicación no disponible"
+    try:
+        response = requests.get(url, params=params, headers=headers, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            address = data.get('address', {})
+            partes = [
+                address.get('road'),
+                address.get('suburb'),
+                address.get('city') or address.get('town') or address.get('village'),
+            ]
+            return ', '.join([p for p in partes if p]) or "Ubicación no disponible"
+    except Exception as e:
+        print(f"Error obteniendo dirección: {e}")
+        
     return "Ubicación no disponible"
