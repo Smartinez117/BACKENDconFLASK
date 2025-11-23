@@ -80,6 +80,13 @@ firebase_admin.initialize_app(cred)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_size": 5,         # Mantiene máximo 5 conexiones abiertas permanentemente por instancia
+    "max_overflow": 10,     # Permite crear 10 extra si hay mucha carga momentánea
+    "pool_timeout": 30,     # Espera 30 seg por una conexión antes de dar error
+    "pool_recycle": 1800,   # Recicla conexiones cada 30 mins para evitar que mueran silenciosamente
+    "pool_pre_ping": True   # Verifica que la conexión sirva antes de usarla (VITAL)
+}
 db.init_app(app)
 migrate = Migrate(app, db)
 frontend_url = os.getenv("FRONTEND_URL", "*")  # * como fallback
