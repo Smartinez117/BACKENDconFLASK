@@ -14,8 +14,7 @@ from urllib.parse import urljoin
 from flask import has_app_context, current_app
 
 def generar_pdf_publicacion(id_publicacion):
-    """Genera un archivo PDF con los datos de una publicación, incluyendo imagen,
-    descripción, contacto, ubicación, fecha, QR y logo."""
+    """Genera un archivo PDF con los datos de una publicación."""
     publicacion = Publicacion.query.get(id_publicacion)
     if not publicacion:
         raise Exception("Publicación no encontrada")
@@ -38,15 +37,13 @@ def generar_pdf_publicacion(id_publicacion):
     )
     style_title = styles['Title']
 
-    # --- CORRECCIÓN AQUÍ ---
-    # Obtenemos el nombre desde la relación categoria_obj
+    # Categoría (Usando la relación corregida)
     nombre_categoria = "SIN CATEGORÍA"
     if publicacion.categoria_obj:
         nombre_categoria = publicacion.categoria_obj.nombre
 
     titulo = f"{nombre_categoria.upper()}: {publicacion.titulo or ''}"
-    # -----------------------
-
+    
     p_titulo = Paragraph(titulo, style_title)
     w, h = p_titulo.wrap(width - 100, 50)
     p_titulo.drawOn(c, 50, y - h)
@@ -65,7 +62,6 @@ def generar_pdf_publicacion(id_publicacion):
                 display_width = width * 0.6
                 display_height = display_width * img_height / img_width
 
-                # Si se pasa del alto máximo, escalamos nuevamente
                 if display_height > max_display_height:
                     display_height = max_display_height
                     display_width = display_height * img_width / img_height
@@ -89,12 +85,18 @@ def generar_pdf_publicacion(id_publicacion):
     parrafo_tel.drawOn(c, 50, y - h)
     y -= (h + 10)
 
-    # Ubicación
-    if publicacion.coordenadas:
+    # --- CORRECCIÓN DE UBICACIÓN ---
+    direccion = "No disponible"
+    
+    # 1. Prioridad: Nombre de la localidad desde la base de datos
+    if publicacion.localidad:
+        direccion = publicacion.localidad.nombre
+        
+    # 2. Fallback: Si no tiene localidad guardada, intentamos usar las coordenadas (GPS)
+    elif publicacion.coordenadas:
         lat, lon = publicacion.coordenadas
         direccion = coordenadas_a_direccion(lat, lon)
-    else:
-        direccion = "No disponible"
+    # -------------------------------
 
     parrafo_ubi = Paragraph(f"<b>Ubicación:</b> {direccion}", style_normal)
     w, h = parrafo_ubi.wrap(width - 100, height)
@@ -108,7 +110,7 @@ def generar_pdf_publicacion(id_publicacion):
     parrafo_fecha.drawOn(c, 50, y - h)
     y -= (h + 20)
 
-    # Código QR (abajo derecha)
+    # Código QR
     def _get_frontend_url():
         frontend_url = None
         try:
@@ -135,7 +137,7 @@ def generar_pdf_publicacion(id_publicacion):
     qr_size = 230 
     c.drawImage(ImageReader(qr_img), width - qr_size - 10, 20, width=qr_size, height=qr_size)
 
-    # Logo (abajo izquierda)
+    # Logo
     def _get_logo_path():
         logo_path = None
         try:
@@ -170,8 +172,7 @@ def generar_pdf_publicacion(id_publicacion):
 
 
 def coordenadas_a_direccion(lat, lon):
-    """Convierte coordenadas geográficas en una dirección legible
-    usando el servicio de OpenStreetMap."""
+    """Convierte coordenadas geográficas en una dirección legible."""
     url = "https://nominatim.openstreetmap.org/reverse"
     params = {
         'format': 'json',
