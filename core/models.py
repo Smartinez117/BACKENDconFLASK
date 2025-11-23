@@ -169,6 +169,16 @@ def generar_slug_before_insert(mapper, connection, target):
         candidate = f"{base_slug}{uuid.uuid4().hex[:6]}"
     target.slug = candidate
 
+class Categoria(db.Model):
+    __tablename__ = 'categorias'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), unique=True, nullable=False)
+    descripcion = db.Column(db.Text)
+
+    publicaciones = db.relationship("Publicacion", back_populates="categoria_obj")
+
+
 class Etiqueta(db.Model):
     """Modelo de etiqueta para publicaciones."""
     __tablename__ = 'etiquetas'
@@ -203,7 +213,13 @@ class Publicacion(db.Model):
     )
     id_locacion = db.Column(db.BigInteger, db.ForeignKey('localidades.id'))
     titulo = db.Column(db.Text)
-    categoria = db.Column(db.Text, nullable=False)
+    id_categoria = db.Column(
+        db.Integer,
+        db.ForeignKey('categorias.id', ondelete='SET NULL'),
+        nullable=True
+    )
+
+    categoria_obj = db.relationship("Categoria", back_populates="publicaciones")
     descripcion = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime(timezone=True))
     fecha_modificacion = db.Column(db.DateTime(timezone=True))
@@ -225,7 +241,11 @@ class Publicacion(db.Model):
             "id_usuario": self.id_usuario,
             "id_locacion": self.id_locacion,
             "titulo": self.titulo,
-            "categoria": self.categoria,
+            "categoria": {
+                "id": self.categoria_obj.id,
+                "nombre": self.categoria_obj.nombre,
+                "descripcion": self.categoria_obj.descripcion
+            } if self.categoria_obj else None,
             "descripcion": self.descripcion,
             "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
             "fecha_modificacion": self.fecha_modificacion.isoformat() if self.fecha_modificacion else None,
