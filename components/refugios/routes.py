@@ -14,8 +14,6 @@ def obtener_refugios():
     query = request.json.get('query')
     overpass_url = 'https://overpass-api.de/api/interpreter'
 
-    print(f"📡 Consultando Overpass con query: {query}") # Debug
-
     try:
         # CAMBIO: Quitamos los headers manuales, requests lo hace solo
         response = requests.post(
@@ -25,13 +23,10 @@ def obtener_refugios():
         
         # Si Overpass devuelve error (ej: 400 Bad Request o 429 Too Many Requests)
         if response.status_code != 200:
-            print(f"❌ Error Overpass: {response.status_code} - {response.text}")
             return jsonify({'error': 'Overpass API error', 'detalle': response.text}), response.status_code
 
         data = response.json()
-        print(f"✅ Refugios encontrados: {len(data.get('elements', []))}") # Debug
         return jsonify(data), 200
 
     except Exception as error:
-        print(f"❌ Error interno al consultar refugios: {str(error)}")
         return jsonify({'error': 'Error al consultar Overpass API', 'detalle': str(error)}), 500
