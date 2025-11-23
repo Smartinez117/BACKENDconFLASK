@@ -26,6 +26,12 @@ class Usuario(db.Model):
     descripcion = db.Column(db.Text)
     slug = db.Column(db.String(150), unique=True, nullable=False)
     estado = db.Column(db.String(10), nullable=False, default="activo")
+    
+    # Relación opcional con la tabla 'localidades'
+    id_localidad = db.Column(db.BigInteger, db.ForeignKey('localidades.id'), nullable=True)
+    
+    # Propiedad para acceder al objeto localidad directamente (usuario.localidad.nombre)
+    localidad_obj = db.relationship('Localidad', backref='usuarios')
 
     # Cascada para publicaciones y comentarios (Siguen igual)
     publicaciones = db.relationship(
@@ -73,6 +79,20 @@ class Usuario(db.Model):
         pass 
 
     def to_dict(self):
+        
+        # Construimos la info de ubicación si existe
+        ubicacion_info = None
+        if self.localidad_obj:
+            # Al tener la localidad, podemos acceder al departamento y provincia
+            # asumiendo que tienes las relaciones definidas en el modelo Localidad/Departamento
+            # O simplemente devolvemos el nombre de la localidad
+            ubicacion_info = {
+                "id": self.localidad_obj.id,
+                "nombre": self.localidad_obj.nombre,
+                # Si tu modelo Localidad tiene relación con Departamento, podrías agregar:
+                # "departamento": self.localidad_obj.departamento.nombre
+            }
+            
         return {
             "id": self.id,
             "nombre": self.nombre,
@@ -81,7 +101,8 @@ class Usuario(db.Model):
             "fecha_registro": self.fecha_registro.isoformat() if self.fecha_registro else None,
             "foto_perfil_url": self.foto_perfil_url,
             "slug": self.slug,
-            "estado": self.estado
+            "estado": self.estado,
+            "ubicacion": ubicacion_info
         }
 
 
