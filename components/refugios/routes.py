@@ -3,6 +3,9 @@ from flask import Blueprint, request, jsonify
 
 overpass_bp = Blueprint("overpass", __name__)
 
+# OJO: Revisa si en tu app.py registraste este blueprint con 'url_prefix=/api'
+# Si ya tiene prefijo, la ruta aquí debería ser solo '/refugios'.
+# Si NO tiene prefijo, déjala como '/api/refugios'.
 @overpass_bp.route('/api/refugios', methods=['POST'])
 def obtener_refugios():
     """
@@ -11,14 +14,24 @@ def obtener_refugios():
     query = request.json.get('query')
     overpass_url = 'https://overpass-api.de/api/interpreter'
 
+    print(f"📡 Consultando Overpass con query: {query}") # Debug
+
     try:
+        # CAMBIO: Quitamos los headers manuales, requests lo hace solo
         response = requests.post(
             overpass_url,
-            data={'data': query},
-            headers={'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'}
+            data={'data': query}
         )
-        response.raise_for_status()
+        
+        # Si Overpass devuelve error (ej: 400 Bad Request o 429 Too Many Requests)
+        if response.status_code != 200:
+            print(f"❌ Error Overpass: {response.status_code} - {response.text}")
+            return jsonify({'error': 'Overpass API error', 'detalle': response.text}), response.status_code
+
         data = response.json()
+        print(f"✅ Refugios encontrados: {len(data.get('elements', []))}") # Debug
         return jsonify(data), 200
+
     except Exception as error:
+        print(f"❌ Error interno al consultar refugios: {str(error)}")
         return jsonify({'error': 'Error al consultar Overpass API', 'detalle': str(error)}), 500
