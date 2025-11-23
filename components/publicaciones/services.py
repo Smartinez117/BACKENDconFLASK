@@ -348,31 +348,23 @@ def obtener_info_principal_publicacion(id_publicacion):
     }
 
 def obtener_publicaciones_por_usuario(id_usuario):
+    # 1. Hacemos la query optimizada (eager loading)
     publicaciones = (
         db.session.query(Publicacion)
         .options(
             joinedload(Publicacion.imagenes),
             joinedload(Publicacion.etiquetas),
             joinedload(Publicacion.localidad),
-            joinedload(Publicacion.categoria_obj) # Cargar categoria
+            joinedload(Publicacion.categoria_obj) # IMPORTANTE: Cargar la relación
         )
         .filter(Publicacion.id_usuario == id_usuario)
         .order_by(Publicacion.fecha_creacion.desc())
         .all()
     )
 
-    resultado = []
-    for pub in publicaciones:
-        # Usamos to_dict() del modelo si está bien definido, o construimos manual.
-        # Dado que modificaste models.py, asegúrate que pub.to_dict() maneje bien la categoría
-        # O constrúyelo aquí manualmente como en las otras funciones:
-        dic = pub.to_dict()
-        # Asegurar que categoría sea objeto
-        if pub.categoria_obj:
-             dic['categoria'] = { "id": pub.categoria_obj.id, "nombre": pub.categoria_obj.nombre }
-        resultado.append(dic)
-
-    return resultado
+    # 2. Usamos la lógica que YA escribiste en el modelo.
+    # Esto devuelve la lista de diccionarios con la categoría como objeto.
+    return [pub.to_dict() for pub in publicaciones]
 
 def archivar_publicacion(id_publicacion):
     pub = Publicacion.query.get(id_publicacion)
