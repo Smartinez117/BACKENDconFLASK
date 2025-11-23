@@ -18,8 +18,10 @@ def actualizar_datos_usuario(id_usuario,data):
     usuario.descripcion = data.get('descripcion', usuario.descripcion)
     usuario.role_id = data.get("role_id", usuario.role_id)
     usuario.fecha_modificacion = datetime.now(timezone.utc)
-
+    if 'id_localidad' in data:
+        usuario.id_localidad = data['id_localidad']
     db.session.commit()
+    return usuario.to_dict(), 200
 
 def get_usuario (id_usuario):
     ''' Obtiene la información de un usuario por su ID.'''
@@ -121,20 +123,5 @@ def obtener_usuario_por_uid(uid):
     if not usuario:
         return None
 
-    return {
-        'id': usuario.id,
-        'firebase_uid': usuario.firebase_uid,
-        'nombre': usuario.nombre,
-        'email': usuario.email,
-        'foto_perfil_url': usuario.foto_perfil_url,
-        "rol": usuario.rol_obj.nombre if usuario.rol_obj else None,
-        'fecha_registro': (
-            usuario.fecha_registro.astimezone(zona_arg).isoformat()
-            if usuario.fecha_registro else None
-        ),
-        'telefono_pais': usuario.telefono_pais,
-        'telefono_numero_local': usuario.telefono_numero_local,
-        'descripcion': usuario.descripcion,
-        'slug': usuario.slug,
-        'estado': usuario.estado
-    }
+    # IMPORTANTE: Usamos el método del modelo que ya incluye la lógica de UBICACIÓN
+    return usuario.to_dict()

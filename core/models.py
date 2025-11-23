@@ -1,12 +1,69 @@
 import datetime
 import uuid
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Numeric
+from sqlalchemy import Numeric, event
+from sqlalchemy.orm import Session
 from slugify import slugify
-from sqlalchemy import event
-import uuid
 
 db = SQLAlchemy()
+
+# --- FUNCIONES AUXILIARES ---
+
+def _to_str_safe(v):
+    """Convierte un valor a string de forma segura (maneja bytes, None, etc)."""
+    if v is None:
+        return ''
+    if isinstance(v, str):
+        return v
+    if isinstance(v, (bytes, bytearray)):
+        try:
+            return v.decode('utf-8')
+        except Exception:
+            return v.decode('latin-1', errors='replace')
+    if isinstance(v, memoryview):
+        try:
+            return v.tobytes().decode('utf-8')
+        except Exception:
+            return v.tobytes().decode('latin-1', errors='replace')
+    return str(v)
+
+
+# --- MODELOS DE UBICACIÓN ---
+
+class Provincia(db.Model):
+    """Modelo de provincia."""
+    __tablename__ = 'provincias'
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.Text)
+    latitud = db.Column(Numeric(15, 10))
+    longitud = db.Column(Numeric(15, 10))
+
+class Departamento(db.Model):
+    """Modelo de departamento."""
+    __tablename__ = 'departamentos'
+    id = db.Column(db.Integer, primary_key=True)
+    id_provincia = db.Column(db.Integer, db.ForeignKey('provincias.id'))
+    nombre = db.Column(db.Text)
+    latitud = db.Column(Numeric(15, 10))
+    longitud = db.Column(Numeric(15, 10))
+    
+    # Relación para acceder a la provincia desde el departamento
+    provincia = db.relationship('Provincia', backref='departamentos')
+
+class Localidad(db.Model):
+    """Modelo de localidad."""
+    __tablename__ = 'localidades'
+    id = db.Column(db.BigInteger, primary_key=True)
+    nombre = db.Column(db.Text)
+    id_departamento = db.Column(db.Integer, db.ForeignKey('departamentos.id'))
+    latitud = db.Column(Numeric(15, 10))
+    longitud = db.Column(Numeric(15, 10))
+
+    # Relación para acceder al departamento desde la localidad
+    departamento = db.relationship('Departamento', backref='localidades')
+
+
+# --- MODELOS PRINCIPALES ---
 
 class Usuario(db.Model):
     """Modelo de usuario para la base de datos."""
@@ -33,7 +90,7 @@ class Usuario(db.Model):
     # Propiedad para acceder al objeto localidad directamente (usuario.localidad.nombre)
     localidad_obj = db.relationship('Localidad', backref='usuarios')
 
-    # Cascada para publicaciones y comentarios (Siguen igual)
+    # Cascada para publicaciones y comentarios
     publicaciones = db.relationship(
         'Publicacion',
         backref='usuario',
@@ -49,13 +106,13 @@ class Usuario(db.Model):
         passive_deletes=True
     )
 
-    # --- CORRECCIÓN DE REPORTES ---
+    # --- REPORTES ---
     
     # 1. Reportes que este usuario HA CREADO (es el denunciante)
     reportes_realizados = db.relationship(
         'Reporte',
-        foreign_keys='Reporte.id_usuario', # Especificamos explícitamente la FK
-        backref='denunciante',             # En el objeto Reporte, se accederá como .denunciante
+        foreign_keys='Reporte.id_usuario', 
+        backref='denunciante',             
         lazy=True,
         cascade="all, delete-orphan",
         passive_deletes=True
@@ -64,50 +121,15 @@ class Usuario(db.Model):
     # 2. Reportes que este usuario HA RECIBIDO (es el denunciado)
     reportes_recibidos = db.relationship(
         'Reporte',
-        foreign_keys='Reporte.id_usuario_reportado', # Especificamos explícitamente la FK
-        backref='denunciado',                        # En el objeto Reporte, se accederá como .denunciado
+        foreign_keys='Reporte.id_usuario_reportado', 
+        backref='denunciado',                        
         lazy=True,
         cascade="all, delete-orphan",
         passive_deletes=True
     )
 
-    # ... (Tus métodos generar_slug y to_dict siguen igual) ...
     def generar_slug(self):
-        # ... (Tu código original) ...
-        nombre = str(self.nombre) # Simplificación para el ejemplo
-        # ... resto de tu lógica ...
-        pass 
-
-    def to_dict(self):
-        
-        # Construimos la info de ubicación si existe
-        ubicacion_info = None
-        if self.localidad_obj:
-            # Al tener la localidad, podemos acceder al departamento y provincia
-            # asumiendo que tienes las relaciones definidas en el modelo Localidad/Departamento
-            # O simplemente devolvemos el nombre de la localidad
-            ubicacion_info = {
-                "id": self.localidad_obj.id,
-                "nombre": self.localidad_obj.nombre,
-                # Si tu modelo Localidad tiene relación con Departamento, podrías agregar:
-                # "departamento": self.localidad_obj.departamento.nombre
-            }
-            
-        return {
-            "id": self.id,
-            "nombre": self.nombre,
-            "email": self.email,
-            "rol": self.rol_obj.nombre if self.rol_obj else None,
-            "fecha_registro": self.fecha_registro.isoformat() if self.fecha_registro else None,
-            "foto_perfil_url": self.foto_perfil_url,
-            "slug": self.slug,
-            "estado": self.estado,
-            "ubicacion": ubicacion_info
-        }
-
-
-    def generar_slug(self):
-        """Genera un slug único basado en el nombre del usuario (forzando str)."""
+        """Genera un slug único basado en el nombre del usuario."""
         nombre = _to_str_safe(self.nombre)
         try:
             base_slug = slugify(nombre)
@@ -116,42 +138,50 @@ class Usuario(db.Model):
         except Exception:
             base_slug = 'u'
         candidate = f"{base_slug}{uuid.uuid4().hex[:6]}"
+        # Nota: self.query puede no funcionar si no se hereda de db.Model con query property,
+        # es mejor usar Usuario.query o db.session.query(Usuario)
         while Usuario.query.filter_by(slug=candidate).first():
             candidate = f"{base_slug}{uuid.uuid4().hex[:6]}"
         self.slug = candidate
 
     def to_dict(self):
-        """Convierte la publicación a un diccionario serializable."""
+        """Convierte el usuario a un diccionario serializable con toda la info."""
+        
+        # Construimos la info de ubicación completa si existe
+        ubicacion_info = None
+        if self.localidad_obj:
+            loc = self.localidad_obj
+            
+            # Obtenemos IDs jerárquicos gracias a las nuevas relaciones agregadas
+            id_provincia = None
+            if loc.departamento:
+                 id_provincia = loc.departamento.id_provincia
+
+            ubicacion_info = {
+                "id": loc.id,
+                "nombre": loc.nombre,
+                "id_departamento": loc.id_departamento,
+                "id_provincia": id_provincia
+            }
+            
         return {
             "id": self.id,
+            "firebase_uid": self.firebase_uid,
             "nombre": self.nombre,
             "email": self.email,
             "rol": self.rol_obj.nombre if self.rol_obj else None,
             "fecha_registro": self.fecha_registro.isoformat() if self.fecha_registro else None,
             "foto_perfil_url": self.foto_perfil_url,
             "slug": self.slug,
-            "estado": self.estado
+            "estado": self.estado,
+            "telefono_pais": self.telefono_pais,
+            "telefono_numero_local": self.telefono_numero_local,
+            "descripcion": self.descripcion,
+            "id_localidad": self.id_localidad,
+            "ubicacion": ubicacion_info
         }
-  
 
-def _to_str_safe(v):
-        if v is None:
-            return ''
-        if isinstance(v, str):
-            return v
-        if isinstance(v, (bytes, bytearray)):
-            try:
-                return v.decode('utf-8')
-            except Exception:
-                return v.decode('latin-1', errors='replace')
-        if isinstance(v, memoryview):
-            try:
-                return v.tobytes().decode('utf-8')
-            except Exception:
-                return v.tobytes().decode('latin-1', errors='replace')
-        return str(v)
-    
-    
+# Evento para generar slug automáticamente antes de insertar
 @event.listens_for(Usuario, 'before_insert')
 def generar_slug_before_insert(mapper, connection, target):
     """Listener que normaliza nombre y genera un slug único antes de insertar."""
@@ -163,11 +193,11 @@ def generar_slug_before_insert(mapper, connection, target):
     except Exception:
         base_slug = 'u'
     candidate = f"{base_slug}{uuid.uuid4().hex[:6]}"
-    from sqlalchemy.orm import Session
     sess = Session(bind=connection)
     while sess.query(Usuario).filter_by(slug=candidate).first():
         candidate = f"{base_slug}{uuid.uuid4().hex[:6]}"
     target.slug = candidate
+
 
 class Categoria(db.Model):
     __tablename__ = 'categorias'
@@ -232,8 +262,6 @@ class Publicacion(db.Model):
     
     estado = db.Column(db.Integer, default=0)
   
-
-
     def to_dict(self):
         """Convierte la publicación a un diccionario serializable."""
         return {
@@ -251,8 +279,8 @@ class Publicacion(db.Model):
             "fecha_modificacion": self.fecha_modificacion.isoformat() if self.fecha_modificacion else None,
             "coordenadas": self.coordenadas,
             "estado": self.estado,
-            "etiquetas": [etiqueta.nombre for etiqueta in self.etiquetas],  # asumiendo que `Etiqueta` tiene `nombre`
-            "imagenes": [img.url for img in self.imagenes],  # asumiendo que `Imagen` tiene `url`
+            "etiquetas": [etiqueta.nombre for etiqueta in self.etiquetas],
+            "imagenes": [img.url for img in self.imagenes],
             "localidad": self.localidad.nombre if self.localidad else None
         }
 
@@ -274,31 +302,6 @@ class Imagen(db.Model):
     id_publicacion = db.Column(db.Integer, db.ForeignKey('publicaciones.id', ondelete='CASCADE'))
     url = db.Column(db.Text)
 
-class Provincia(db.Model):
-    """Modelo de provincia."""
-    __tablename__ = 'provincias'
-    id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.Text)
-    latitud = db.Column(Numeric(15, 10))
-    longitud = db.Column(Numeric(15, 10))
-
-class Departamento(db.Model):
-    """Modelo de departamento."""
-    __tablename__ = 'departamentos'
-    id = db.Column(db.Integer, primary_key=True)
-    id_provincia = db.Column(db.Integer, db.ForeignKey('provincias.id'))
-    nombre = db.Column(db.Text)
-    latitud = db.Column(Numeric(15, 10))
-    longitud = db.Column(Numeric(15, 10))
-
-class Localidad(db.Model):
-    """Modelo de localidad."""
-    __tablename__ = 'localidades'
-    id = db.Column(db.BigInteger, primary_key=True)
-    nombre = db.Column(db.Text)
-    id_departamento = db.Column(db.Integer, db.ForeignKey('departamentos.id'))
-    latitud = db.Column(Numeric(15, 10))
-    longitud = db.Column(Numeric(15, 10))
 
 class Notificacion(db.Model):
     """Modelo de notificación para usuarios."""
@@ -316,25 +319,17 @@ class Reporte(db.Model):
     __tablename__ = 'reportes'
     id = db.Column(db.Integer, primary_key=True)
     
-    # CAMBIO 1: id_publicacion pasa a ser nullable=True
-    # Esto permite crear reportes que NO sean de publicaciones (ej: de usuario)
     id_publicacion = db.Column(db.Integer, db.ForeignKey('publicaciones.id', ondelete='CASCADE'), nullable=True)
-    
-    # CAMBIO 2: Nuevos campos para los otros objetivos
     id_comentario = db.Column(db.Integer, db.ForeignKey('comentarios.id', ondelete='CASCADE'), nullable=True)
-    
-    # Este es el usuario REPORTADO (el denunciado). 
-    # 'id_usuario' sigue siendo el denunciante.
     id_usuario_reportado = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=True)
 
-    # Usuario que HACE el reporte (Sigue igual, obligatorio)
+    # Usuario que HACE el reporte
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=False)
     
     descripcion = db.Column(db.Text)
     tipo = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime(timezone=True), nullable=False)
 
-    # Opcional: Propiedad para saber qué se reportó fácilmente
     @property
     def objetivo(self):
         if self.id_publicacion:
@@ -345,20 +340,16 @@ class Reporte(db.Model):
             return "Usuario"
         return "Desconocido"
 
-    
-
 class Rol(db.Model):
     """Modelo de rol para usuarios."""
     __tablename__ = 'roles'
 
     id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(50), unique=True, nullable=False)  # ej: "user", "admin"
+    nombre = db.Column(db.String(50), unique=True, nullable=False)
 
-    # Relación con usuarios (un rol puede tener muchos usuarios)
     usuarios = db.relationship('Usuario', back_populates='rol_obj')
-    
-    
-    
+
+
 class RequestLog(db.Model):
     """Modelo para registrar logs de requests."""
     __tablename__ = "request_logs"
