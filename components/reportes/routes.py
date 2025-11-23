@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify,g
 from components.reportes.services import (
     crear_reporte,
     obtener_reportes_por_publicacion,
@@ -17,6 +17,7 @@ reportes_bp = Blueprint("reportes", __name__)
 def crear():
     '''Crea un nuevo reporte.'''
     data = request.get_json()
+    data['id_usuario'] = g.usuario_actual.id
     return crear_reporte(data)
 
 

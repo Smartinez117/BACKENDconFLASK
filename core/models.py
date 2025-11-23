@@ -16,8 +16,10 @@ class Usuario(db.Model):
     nombre = db.Column(db.Text, nullable=False)
     email = db.Column(db.Text, nullable=False)
     foto_perfil_url = db.Column(db.Text)
+    
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False, default=1)
     rol_obj = db.relationship('Rol', back_populates='usuarios')
+    
     fecha_registro = db.Column(db.DateTime(timezone=True))
     telefono_pais = db.Column(db.Text)
     telefono_numero_local = db.Column(db.BigInteger)
@@ -25,7 +27,7 @@ class Usuario(db.Model):
     slug = db.Column(db.String(150), unique=True, nullable=False)
     estado = db.Column(db.String(10), nullable=False, default="activo")
 
-    # Cascada para publicaciones, comentarios y reportes
+    # Cascada para publicaciones y comentarios (Siguen igual)
     publicaciones = db.relationship(
         'Publicacion',
         backref='usuario',
@@ -40,13 +42,47 @@ class Usuario(db.Model):
         cascade="all, delete-orphan",
         passive_deletes=True
     )
-    reportes = db.relationship(
+
+    # --- CORRECCIÓN DE REPORTES ---
+    
+    # 1. Reportes que este usuario HA CREADO (es el denunciante)
+    reportes_realizados = db.relationship(
         'Reporte',
-        backref='usuario',
+        foreign_keys='Reporte.id_usuario', # Especificamos explícitamente la FK
+        backref='denunciante',             # En el objeto Reporte, se accederá como .denunciante
         lazy=True,
         cascade="all, delete-orphan",
         passive_deletes=True
     )
+
+    # 2. Reportes que este usuario HA RECIBIDO (es el denunciado)
+    reportes_recibidos = db.relationship(
+        'Reporte',
+        foreign_keys='Reporte.id_usuario_reportado', # Especificamos explícitamente la FK
+        backref='denunciado',                        # En el objeto Reporte, se accederá como .denunciado
+        lazy=True,
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
+
+    # ... (Tus métodos generar_slug y to_dict siguen igual) ...
+    def generar_slug(self):
+        # ... (Tu código original) ...
+        nombre = str(self.nombre) # Simplificación para el ejemplo
+        # ... resto de tu lógica ...
+        pass 
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "email": self.email,
+            "rol": self.rol_obj.nombre if self.rol_obj else None,
+            "fecha_registro": self.fecha_registro.isoformat() if self.fecha_registro else None,
+            "foto_perfil_url": self.foto_perfil_url,
+            "slug": self.slug,
+            "estado": self.estado
+        }
 
 
     def generar_slug(self):
@@ -238,11 +274,35 @@ class Notificacion(db.Model):
 class Reporte(db.Model):
     __tablename__ = 'reportes'
     id = db.Column(db.Integer, primary_key=True)
-    id_publicacion = db.Column(db.Integer, db.ForeignKey('publicaciones.id', ondelete='CASCADE'), nullable=False)
+    
+    # CAMBIO 1: id_publicacion pasa a ser nullable=True
+    # Esto permite crear reportes que NO sean de publicaciones (ej: de usuario)
+    id_publicacion = db.Column(db.Integer, db.ForeignKey('publicaciones.id', ondelete='CASCADE'), nullable=True)
+    
+    # CAMBIO 2: Nuevos campos para los otros objetivos
+    id_comentario = db.Column(db.Integer, db.ForeignKey('comentarios.id', ondelete='CASCADE'), nullable=True)
+    
+    # Este es el usuario REPORTADO (el denunciado). 
+    # 'id_usuario' sigue siendo el denunciante.
+    id_usuario_reportado = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=True)
+
+    # Usuario que HACE el reporte (Sigue igual, obligatorio)
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=False)
+    
     descripcion = db.Column(db.Text)
     tipo = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime(timezone=True), nullable=False)
+
+    # Opcional: Propiedad para saber qué se reportó fácilmente
+    @property
+    def objetivo(self):
+        if self.id_publicacion:
+            return "Publicación"
+        elif self.id_comentario:
+            return "Comentario"
+        elif self.id_usuario_reportado:
+            return "Usuario"
+        return "Desconocido"
 
     
 
