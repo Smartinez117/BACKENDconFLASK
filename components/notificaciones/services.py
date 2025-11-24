@@ -86,6 +86,7 @@ def noti_to_dict(notificacion):
     return {
         "id": notificacion.id,
         "id_usuario": notificacion.id_usuario,
+        "id_publicacion":notificacion.id_publicacion,
         "titulo": notificacion.titulo,
         "descripcion": notificacion.descripcion,
         "tipo": notificacion.tipo,
@@ -101,14 +102,9 @@ def noti_to_dict(notificacion):
 #iria de la mano con la funcion de crear notificacion asique la dejare aqui notado
 def notificar(newnotificacion):
     """Envía una notificación en tiempo real al usuario correspondiente usando sockets."""
-    print("id publicacion",newnotificacion.id_publicacion)
     id_owner = obtener_user_por_idpublicacion(newnotificacion.id_publicacion)
-    print("id owner",id_owner)
     user = get_usuario(id_owner)
-    print("user",user)
     uid_user= user["firebase_uid"]
-    print("uis_user",uid_user)
-    print(userconnected)
     if  uid_user in userconnected:  
         print("entro a la bifurcacion")   
         notification = {

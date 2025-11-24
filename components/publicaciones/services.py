@@ -2,7 +2,7 @@ import traceback
 from flask import jsonify
 from components.comentarios.services import eliminar_comentario
 from components.imagenes.services import eliminar_imagen
-from core.models import Comentario, db, Publicacion, Imagen, Etiqueta, PublicacionEtiqueta, Categoria
+from core.models import Comentario, db, Publicacion, Imagen, Etiqueta, PublicacionEtiqueta, Categoria,Usuario,Notificacion
 from datetime import datetime, timezone
 from math import radians, sin, cos, sqrt, atan2
 from sqlalchemy import text, func
@@ -52,18 +52,43 @@ def crear_publicacion(data, usuario):
             if etiqueta:
                 nueva_publicacion.etiquetas.append(etiqueta)
 
+        id_loc = data.get('id_locacion')
+
+        if id_loc:
+            usuarios_destino = Usuario.query.filter(
+                Usuario.id_localidad == id_loc,
+                Usuario.id != usuario.id  # excluir al autor
+            ).all()
+
+            mensaje_notif = f"Se publicó algo nuevo en tu zona: '{nueva_publicacion.titulo}'."
+            titulo_notif = f"Nueva Publicación"
+
+            for u in usuarios_destino:
+                notificacion = Notificacion(
+                    id_usuario=u.id,
+                    id_publicacion = nueva_publicacion.id,
+                    titulo = titulo_notif,
+                    descripcion=mensaje_notif,
+                    fecha_creacion=datetime.now(timezone.utc),
+                    leido=False
+                )
+                db.session.add(notificacion)
+
+        # Commit final
         db.session.commit()
 
         return {
-            "mensaje": "Publicación creada exitosamente",
-            "id_publicacion": nueva_publicacion.id
-        }, 201
+                "mensaje": "Publicación creada exitosamente",
+                "id_publicacion": nueva_publicacion.id
+            }, 201
 
     except Exception as error:
-        traceback.print_exc()
-        db.session.rollback()
-        db.session.close()
-        return {"error": str(error)}, 400
+            traceback.print_exc()
+            db.session.rollback()
+            db.session.close()
+            return {"error": str(error)}, 400
+
+
 
 
 def obtener_publicacion_por_id(id_publicacion):
