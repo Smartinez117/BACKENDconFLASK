@@ -35,11 +35,15 @@ def crear_notificacion(data):#suponog que aca habria que agregar lo del id de la
 
 
 def obtener_notificaciones_por_usuario(id_usuario, solo_no_leidas=False):
-    """Obtiene todas las notificaciones de un usuario, opcionalmente solo las no leídas."""
     query = Notificacion.query.filter_by(id_usuario=id_usuario)
+    
     if solo_no_leidas:
         query = query.filter_by(leido=False)
-    return [noti_to_dict(n) for n in query.order_by(Notificacion.fecha_creacion.desc()).all()]
+        
+    notificaciones = query.order_by(Notificacion.fecha_creacion.desc()).limit(50).all()
+    
+    # Opción A: Usar el método to_dict() del modelo (Recomendado)
+    return [n.to_dict() for n in notificaciones]
 
 
 def obtener_todas():

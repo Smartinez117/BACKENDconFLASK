@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timezone
 import uuid
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Numeric, event
@@ -314,6 +314,22 @@ class Notificacion(db.Model):
     tipo = db.Column(db.Text)
     fecha_creacion = db.Column(db.DateTime(timezone=True), nullable=False)
     leido = db.Column(db.Boolean, default=False)
+    
+    # Sirve para guardar el ID de la SolicitudContacto, o de un Reporte, etc.
+    id_referencia = db.Column(db.Integer, nullable=True)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "id_usuario": self.id_usuario,
+            "id_publicacion": self.id_publicacion,
+            "id_referencia": self.id_referencia, # <--- IMPORTANTE
+            "titulo": self.titulo,
+            "descripcion": self.descripcion,
+            "tipo": self.tipo,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "leido": self.leido
+        }
 
 class Reporte(db.Model):
     __tablename__ = 'reportes'
@@ -401,4 +417,48 @@ class RequestLog(db.Model):
             "image_size": self.image_size,
             "status_code": self.status_code,
             "error": self.error,
+        }
+        
+        
+        
+
+class SolicitudContacto(db.Model):
+    __tablename__ = 'solicitudes_contacto'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Quién quiere contactar (El que encontró el perro o quiere adoptar)
+    id_solicitante = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=False)
+    
+    # El dueño de la publicación
+    id_receptor = db.Column(db.Integer, db.ForeignKey('usuarios.id', ondelete='CASCADE'), nullable=False)
+    
+    # Sobre qué publicación es
+    id_publicacion = db.Column(db.Integer, db.ForeignKey('publicaciones.id', ondelete='CASCADE'), nullable=False)
+    
+    mensaje = db.Column(db.Text) # "Hola, encontré a tu perro..."
+    
+    tipo_contacto = db.Column(db.String(20), nullable=False, default='whatsapp')
+    
+    # Estados: 0=Pendiente, 1=Aceptada, 2=Rechazada
+    estado = db.Column(db.Integer, default=0) 
+    
+    fecha_creacion = db.Column(db.DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+    # Relaciones
+    solicitante = db.relationship('Usuario', foreign_keys=[id_solicitante], backref='solicitudes_enviadas')
+    receptor = db.relationship('Usuario', foreign_keys=[id_receptor], backref='solicitudes_recibidas')
+    publicacion = db.relationship('Publicacion', backref='solicitudes')
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "id_usuario": self.id_usuario,
+            "id_publicacion": self.id_publicacion,
+            "id_referencia": self.id_referencia, # <--- ESTO ES LO QUE FALTABA
+            "titulo": self.titulo,
+            "descripcion": self.descripcion,
+            "tipo": self.tipo,
+            "fecha_creacion": self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            "leido": self.leido
         }

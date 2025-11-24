@@ -30,6 +30,7 @@ from components.roles.routes import roles_bp
 from components.refugios.routes import overpass_bp
 from components.funcionesAdmin.routes import admin_bp
 from components.categorias.routes import categorias_bp
+from components.contactos.routes import contactos_bp
 
 from dotenv import load_dotenv
 import firebase_admin
@@ -121,6 +122,7 @@ app.register_blueprint(roles_bp)
 app.register_blueprint(overpass_bp)
 app.register_blueprint(admin_bp, url_prefix="/api")
 app.register_blueprint(categorias_bp)
+app.register_blueprint(contactos_bp)
 
 
 @app.before_request
