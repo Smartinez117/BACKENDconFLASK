@@ -10,6 +10,7 @@ from auth.services import require_auth
 #
 from util import socketio
 from ..usuarios.routes import userconnected  #importamos la libreria de usuarios conectados
+from flask_socketio import join_room
 
 notificaciones_bp = Blueprint("notificaciones", __name__)
 
@@ -74,10 +75,12 @@ mensaje = {
 uid= 'abve72UPGJZWfSfvx3KGBqd0UGf1'
 
 
-@socketio.on('connect', namespace='/notificacion/'+uid)
-def on_connect():
-    """Maneja la conexión de un cliente al namespace de notificaciones."""
-    print('Cliente conectado al namespace')
+@socketio.on('connect', namespace='/notificacion')
+def on_connect(data):
+    uid = data.get("uid")
+    if uid:
+        join_room(uid)
+
 
 @notificaciones_bp.route("/pruebanot", methods=["POST"])
 def crear_con_socket1():
@@ -85,7 +88,7 @@ def crear_con_socket1():
     data = request.get_json()
     # lógica para crear notificación -->
     #notificar(notification)
-    socketio.emit('notificacion',notification,namespace='/notificacion/'+uid) #una vez
+    socketio.emit('notificacion',notification,room=uid,namespace='/notificacion') #una vez
     return jsonify({"status": "ok"}), 200
 
 #datos de prueba para la part de notificaciones---------------------------------

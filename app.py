@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 import builtins
 if not hasattr(builtins, "unicode"):
     builtins.unicode = str
@@ -68,8 +71,8 @@ service_account_info = {
 }
 
 # Inicializar Firebase
-cred = credentials.Certificate(service_account_info)
 # cred = credentials.Certificate("firebase/firebase-credentials.json")
+cred = credentials.Certificate(service_account_info)
 firebase_admin.initialize_app(cred)
 
 # Configuración de la base de datos con SQLAlchemy

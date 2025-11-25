@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from core.models import db, Usuario, Publicacion
+from core.models import db, Usuario, Publicacion,Notificacion
 from components.usuarios.services import (
     actualizar_datos_usuario,
     get_usuario,
@@ -118,10 +118,13 @@ def get_usuarios():
 
 #diccionario de usuarios conectados
 userconnected = {}
-
+sid_uid_map={}
 #funcion para autenticar a los usuarios desde el socket
 @socketio.on('connect', namespace='/connection')
 def on_connect(auth_data):
+    print("NAMESPACE:", request.namespace)
+    print("clave solucion funcional")
+
     '''Autentica al usuario que se conecta al socket usando el token de Firebase.'''
     token = auth_data.get('token') if auth_data else None
     if not token:
@@ -134,11 +137,14 @@ def on_connect(auth_data):
         name= decoded_token.get('name')
         sid = request.sid #<-- identificador unico de inicio de sesion del socket
         # para cada conexion de cada user
-        #print(uid,name,sid)
+        print(uid,name,sid)
         if not uid:
             disconnect()
             return
         usuario_conectado(uid,name,sid)
+        from components.notificaciones.services import notificarconectado
+        id_user= obtener_usuario_por_uid(uid).id
+        #notificarconectado(id_user,uid)  <---- solo falta descomentar esto y ya funcionaria o bueno probarlo mas bien
     except Exception:
         disconnect()
 
@@ -147,22 +153,35 @@ def on_connect(auth_data):
 def on_disconnect():
     '''Marca al usuario como desconectado cuando se desconecta del socket.'''
     sid = request.sid
-    usuario_desconectado(sid)
+    print("clave")
+   # uid = sid_uid_map.get(sid)
+    if sid not in sid_uid_map:
+        print("ingorno disconection")
+        return
+    uid= sid_uid_map.pop(sid)
+    if uid is None:
+        print("Desconexión ignorada (SID no registrado)", sid)
+        return
+   # eliminar el SID
+    #sid_uid_map.pop(sid, None)
+    if userconnected.get(uid, {}).get("sid") == sid:
+     usuario_desconectado(uid)
 
 #agrego a cada user con su uid,name y sid a un diccionario de user connected
 def usuario_conectado(uid,name,sid):
     '''Agrega un usuario al diccionario de usuarios conectados.'''
-    userconnected[sid]= {
-        "uid": uid,
+    userconnected[uid]= {
+        "sid": sid,
         "name": name
         }
-    #print('usuarios conectados:',userconnected)
+    print('usuarios conectados:',userconnected)
+    sid_uid_map[sid]=uid
 
 
-def usuario_desconectado(sid):
+def usuario_desconectado(uid):
     '''Elimina un usuario del diccionario de usuarios conectados.'''
-    userconnected.pop(sid,None)
-    #print('usuarios conectados:',userconnected)
+    #userconnected.pop(uid,None)
+    print('usuarios conectados(FD):',userconnected)
 
 # Endpoint para obtener publicaciones de un usuario por su id
 #idUsuario : es el id traido desde el endpoint
@@ -180,3 +199,6 @@ def obtener_publicaciones_usuario(idUsuario):
         return jsonify([pub.to_dict() for pub in publicaciones]), 200
     except Exception as error:
         return jsonify({'error': str(error)}), 400
+    
+
+

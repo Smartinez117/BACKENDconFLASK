@@ -30,7 +30,7 @@ def get_usuario (id_usuario):
 
     return {
         'id':usuario.id,
-        'firebase_uid':usuario.id,
+        'firebase_uid':usuario.firebase_uid,
         'nombre':usuario.nombre,
         'email': usuario.email,
         'foto_perfil_url':usuario.foto_perfil_url,
