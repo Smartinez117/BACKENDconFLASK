@@ -34,7 +34,6 @@ def get_por_usuario():
 def get_todo():
     """Obtiene todas las notificaciones."""
     notis = obtener_todas()
-    notis = obtener_todas()
     return jsonify(notis), 200
 
 

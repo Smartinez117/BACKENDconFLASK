@@ -29,7 +29,8 @@ from components.etiquetas.routes import etiquetas_bp
 from components.roles.routes import roles_bp
 from components.refugios.routes import overpass_bp
 from components.funcionesAdmin.routes import admin_bp
-
+from components.categorias.routes import categorias_bp
+from components.contactos.routes import contactos_bp
 
 from dotenv import load_dotenv
 import firebase_admin
@@ -80,6 +81,13 @@ firebase_admin.initialize_app(cred)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_size": 5,         # Mantiene máximo 5 conexiones abiertas permanentemente por instancia
+    "max_overflow": 10,     # Permite crear 10 extra si hay mucha carga momentánea
+    "pool_timeout": 30,     # Espera 30 seg por una conexión antes de dar error
+    "pool_recycle": 1800,   # Recicla conexiones cada 30 mins para evitar que mueran silenciosamente
+    "pool_pre_ping": True   # Verifica que la conexión sirva antes de usarla (VITAL)
+}
 db.init_app(app)
 migrate = Migrate(app, db)
 frontend_url = os.getenv("FRONTEND_URL", "*")  # * como fallback
@@ -113,6 +121,8 @@ app.register_blueprint(etiquetas_bp, url_prefix='/api/etiquetas')
 app.register_blueprint(roles_bp)
 app.register_blueprint(overpass_bp)
 app.register_blueprint(admin_bp, url_prefix="/api")
+app.register_blueprint(categorias_bp)
+app.register_blueprint(contactos_bp)
 
 
 @app.before_request

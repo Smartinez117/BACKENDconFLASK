@@ -1,7 +1,7 @@
 #endpoints que solo necesitara el adminitrador
 # components/funcionesAdmin/routes.py
 from flask import Blueprint, request, jsonify
-from core.models import db, Usuario, Publicacion
+from core.models import db, Usuario, Publicacion, Reporte
 from components.funcionesAdmin.services import actualizar_datos_usuario
 from firebase_admin import auth
 from datetime import datetime
@@ -161,6 +161,26 @@ def admin_obtener_publicaciones():
             "limit": limit,
             "total": total,
             "publicaciones": resultado
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# estadísticas para panel admin
+@admin_bp.route('/admin/estadisticas', methods=['GET'])
+def admin_stats():
+    try:
+        total_usuarios = Usuario.query.count()
+        total_publicaciones = Publicacion.query.count()
+        total_reportes = Reporte.query.count()
+
+        # Si más adelante agregás "Reporte", lo sumamos acá:
+        # total_reportes = Reporte.query.count()
+
+        return jsonify({
+            "usuarios": total_usuarios,
+            "publicaciones": total_publicaciones,
+            "reportes": total_reportes
         }), 200
 
     except Exception as e:

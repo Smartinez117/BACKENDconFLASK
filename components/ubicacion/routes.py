@@ -45,7 +45,7 @@ def obtener_localidades():
         } for l in localidades
     ])
 
-@ubicacion_bp.route('/localidades/<int:id>', methods=['GET'])
+@ubicacion_bp.route('/localidades/<int:id_localidad>', methods=['GET'])
 def obtener_localidad(id_localidad):
     '''Obtiene detalles de una localidad por su ID.'''
     localidad = Localidad.query.get(id_localidad)
@@ -65,7 +65,7 @@ def obtener_localidad(id_localidad):
         'longitud': float(localidad.longitud) if localidad.longitud else None
     })
 
-@ubicacion_bp.route('/localidades/nombre/<int:id>', methods=['GET'])
+@ubicacion_bp.route('/localidades/nombre/<int:id_localidad>', methods=['GET'])
 def obtener_nombre_localidad(id_localidad):
     '''Obtiene el nombre de una localidad por su ID.'''
     localidad = Localidad.query.get(id_localidad)

@@ -33,7 +33,7 @@ def crear_etiqueta():
     return jsonify({"id": etiqueta.id, "nombre": etiqueta.nombre}), 201
 
 
-@etiquetas_bp.route('/<int:id>', methods=['GET'])
+@etiquetas_bp.route('/<int:id_etiqueta>', methods=['GET'])
 def obtener_etiqueta(id_etiqueta):
     """Obtiene una etiqueta por su ID."""
     etiqueta = Etiqueta.query.get(id_etiqueta)
@@ -42,7 +42,7 @@ def obtener_etiqueta(id_etiqueta):
     return jsonify({"id": etiqueta.id, "nombre": etiqueta.nombre})
 
 
-@etiquetas_bp.route('/<int:id>', methods=['PATCH'])
+@etiquetas_bp.route('/<int:id_etiqueta>', methods=['PATCH'])
 def actualizar_etiqueta(id_etiqueta):
     """Actualiza el nombre de una etiqueta existente."""
     etiqueta = Etiqueta.query.get(id_etiqueta)
@@ -67,7 +67,7 @@ def actualizar_etiqueta(id_etiqueta):
     return jsonify({"id": etiqueta.id, "nombre": etiqueta.nombre})
 
 
-@etiquetas_bp.route('/<int:id>', methods=['DELETE'])
+@etiquetas_bp.route('/<int:id_etiqueta>', methods=['DELETE'])
 def eliminar_etiqueta(id_etiqueta):
     """Elimina una etiqueta por su ID."""
     etiqueta = Etiqueta.query.get(id_etiqueta)

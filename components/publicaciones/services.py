@@ -2,7 +2,7 @@ import traceback
 from flask import jsonify
 from components.comentarios.services import eliminar_comentario
 from components.imagenes.services import eliminar_imagen
-from core.models import Comentario, db, Publicacion, Imagen, Etiqueta, PublicacionEtiqueta
+from core.models import Comentario, db, Publicacion, Imagen, Etiqueta, PublicacionEtiqueta, Categoria,Usuario,Notificacion
 from datetime import datetime, timezone
 from math import radians, sin, cos, sqrt, atan2
 from sqlalchemy import text, func
@@ -21,15 +21,18 @@ zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
 def crear_publicacion(data, usuario):
     """Crea una nueva publicación con imágenes y etiquetas."""
     try:
-        # Obtener coordenadas como lista [lat, lng]
-        coord = data.get('coordenadas')  # ← esto es el objeto que llega del frontend
+        imagenes = data.get('imagenes', [])
+        if len(imagenes) > 5:
+            return {"error": "No puedes subir más de 5 imágenes por publicación"}, 400
+        
+        coord = data.get('coordenadas')
         coordenadas = [coord['lat'], coord['lng']] if coord else None
 
         nueva_publicacion = Publicacion(
             id_usuario= usuario.id,
             id_locacion=data.get('id_locacion'),
             titulo=data.get('titulo'),
-            categoria=data.get('categoria'),
+            id_categoria=data.get('id_categoria'), # Correcto
             descripcion=data.get('descripcion'),
             fecha_creacion=datetime.now(timezone.utc),
             fecha_modificacion=datetime.now(timezone.utc),
@@ -37,9 +40,8 @@ def crear_publicacion(data, usuario):
         )
 
         db.session.add(nueva_publicacion)
-        db.session.flush()  # obtener ID generado
+        db.session.flush()
 
-        # Imágenes
         imagenes = data.get('imagenes', [])
         for url in imagenes:
             nueva_imagen = Imagen(
@@ -48,30 +50,53 @@ def crear_publicacion(data, usuario):
             )
             db.session.add(nueva_imagen)
 
-        # Etiquetas
         etiquetas = data.get('etiquetas', [])
         for etiqueta_id in etiquetas:
             etiqueta = Etiqueta.query.get(etiqueta_id)
             if etiqueta:
                 nueva_publicacion.etiquetas.append(etiqueta)
 
+        id_loc = data.get('id_locacion')
 
+        if id_loc:
+            usuarios_destino = Usuario.query.filter(
+                Usuario.id_localidad == id_loc,
+                Usuario.id != usuario.id  # excluir al autor
+            ).all()
+
+            mensaje_notif = f"Se publicó algo nuevo en tu zona: '{nueva_publicacion.titulo}'."
+            titulo_notif = f"Nueva Publicación"
+
+            for u in usuarios_destino:
+                notificacion = Notificacion(
+                    id_usuario=u.id,
+                    id_publicacion = nueva_publicacion.id,
+                    titulo = titulo_notif,
+                    descripcion=mensaje_notif,
+                    fecha_creacion=datetime.now(timezone.utc),
+                    leido=False
+                )
+                db.session.add(notificacion)
+
+        # Commit final
         db.session.commit()
 
         return {
-            "mensaje": "Publicación creada exitosamente",
-            "id_publicacion": nueva_publicacion.id
-        }, 201
+                "mensaje": "Publicación creada exitosamente",
+                "id_publicacion": nueva_publicacion.id
+            }, 201
 
     except Exception as error:
-        traceback.print_exc()
-        db.session.rollback()
-        db.session.close()
-        return {"error": str(error)}, 400
+            traceback.print_exc()
+            db.session.rollback()
+            db.session.close()
+            return {"error": str(error)}, 400
+
+
 
 
 def obtener_publicacion_por_id(id_publicacion):
-    """Obtiene una publicación por su ID, incluyendo imágenes y etiquetas."""
+    """Obtiene una publicación por su ID."""
     pub = Publicacion.query.get(id_publicacion)
 
     if not pub:
@@ -81,13 +106,21 @@ def obtener_publicacion_por_id(id_publicacion):
     urls_imagenes = [img.url for img in imagenes]
     etiquetas = [et.nombre for et in pub.etiquetas]
 
+    # Construir objeto categoría
+    categoria_data = None
+    if pub.categoria_obj:
+        categoria_data = {
+            "id": pub.categoria_obj.id,
+            "nombre": pub.categoria_obj.nombre
+        }
+
     return {
         'id': pub.id,
         'id_usuario': pub.id_usuario,
         'id_locacion': pub.id_locacion,
         'titulo': pub.titulo,
         'descripcion': pub.descripcion,
-        'categoria': pub.categoria,
+        'categoria': categoria_data, # Devolvemos objeto
         'etiquetas': etiquetas,
         'fecha_creacion': (
             pub.fecha_creacion.astimezone(zona_arg).isoformat()
@@ -106,7 +139,7 @@ def obtener_publicaciones_filtradas(
         lat=None,
         lon=None,
         radio_km=None,
-        categoria=None,
+        id_categoria=None, # CAMBIO DE NOMBRE PARÁMETRO
         etiquetas=None,
         fecha_min=None,
         fecha_max=None,
@@ -114,16 +147,18 @@ def obtener_publicaciones_filtradas(
         offset=0,
         limit=12
     ):
-    """Obtiene publicaciones filtradas por ubicación, categoría, etiquetas, fechas o usuario."""
+    """Obtiene publicaciones filtradas."""
     query = db.session.query(Publicacion).options(
-        joinedload(Publicacion.imagenes),  #left join de imagenes y etiquetas
+        joinedload(Publicacion.imagenes),
         joinedload(Publicacion.etiquetas),
-        joinedload(Publicacion.localidad)
+        joinedload(Publicacion.localidad),
+        joinedload(Publicacion.categoria_obj) # Cargamos relación categoria
     )
     query = query.filter((Publicacion.estado == 0) | (Publicacion.estado.is_(None)))
 
-    if categoria:
-        query = query.filter(func.lower(Publicacion.categoria) == categoria.lower())
+    # FILTRO POR ID DE CATEGORÍA
+    if id_categoria:
+        query = query.filter(Publicacion.id_categoria == id_categoria)
 
     if id_usuario:
         query = query.filter(Publicacion.id_usuario == id_usuario)
@@ -149,7 +184,6 @@ def obtener_publicaciones_filtradas(
     if lat is not None and lon is not None and radio_km is not None:
         query = query.filter(Publicacion.coordenadas.isnot(None))
 
-
     query = query.order_by(Publicacion.fecha_creacion.desc())
     query = query.offset(offset).limit(limit)
     publicaciones = query.all()
@@ -164,33 +198,43 @@ def obtener_publicaciones_filtradas(
     for pub in publicaciones:
         urls_imagenes = [img.url for img in pub.imagenes]
         etiquetas = [et.nombre for et in pub.etiquetas]
+        
+        # Construir objeto categoría seguro
+        cat_obj = None
+        if pub.categoria_obj:
+            cat_obj = {
+                "id": pub.categoria_obj.id,
+                "nombre": pub.categoria_obj.nombre
+            }
+
         resultado.append({
             "id": pub.id,
             "titulo": pub.titulo,
             "localidad": pub.localidad.nombre if pub.localidad else None,
-            "categoria": pub.categoria,
+            "categoria": cat_obj, # AQUÍ ESTABA EL ERROR
             "imagenes": urls_imagenes,
             "etiquetas": etiquetas,
             "fecha_creacion": (
                 pub.fecha_creacion.astimezone(zona_arg).isoformat()
                 if pub.fecha_creacion else None
             ),
+            "coordenadas": pub.coordenadas,
+            "descripcion": pub.descripcion
         })
-
 
     return resultado
 
 
-
 def obtener_todas_publicaciones(offset=0, limit=12):
-    """Obtiene todas las publicaciones ordenadas por fecha de creación."""
+    """Obtiene todas las publicaciones ordenadas por fecha."""
     try:
         publicaciones = (
             db.session.query(Publicacion)
             .options(
                 joinedload(Publicacion.imagenes),
                 joinedload(Publicacion.etiquetas),
-                joinedload(Publicacion.localidad)  # cargamos la relación Localidad
+                joinedload(Publicacion.localidad),
+                joinedload(Publicacion.categoria_obj) # IMPORTANTE: cargar categoria
             )
             .order_by(Publicacion.fecha_creacion.desc())
             .filter((Publicacion.estado == 0) | (Publicacion.estado.is_(None)))
@@ -199,16 +243,24 @@ def obtener_todas_publicaciones(offset=0, limit=12):
             .all()
         )
         
-        
         resultado = []
         for pub in publicaciones:
             primer_imagen = pub.imagenes[0].url if pub.imagenes else None
             etiquetas = [et.nombre for et in pub.etiquetas]
+            
+            # Construir objeto categoría seguro
+            cat_obj = None
+            if pub.categoria_obj:
+                cat_obj = {
+                    "id": pub.categoria_obj.id,
+                    "nombre": pub.categoria_obj.nombre
+                }
+
             resultado.append({
                 "id": pub.id,
                 "titulo": pub.titulo,
                 "localidad": pub.localidad.nombre if pub.localidad else None,
-                "categoria": pub.categoria,
+                "categoria": cat_obj, # AQUÍ ESTABA EL ERROR PRINCIPAL
                 "imagenes": primer_imagen,
                 "etiquetas": etiquetas,
                 "fecha_creacion": (
@@ -216,7 +268,6 @@ def obtener_todas_publicaciones(offset=0, limit=12):
                     if pub.fecha_creacion else None
                 ),
             })
-
 
         return resultado
 
@@ -233,31 +284,38 @@ def actualizar_publicacion(id_publicacion, data):
     # Actualizar campos básicos
     publicacion.titulo = data.get('titulo', publicacion.titulo)
     publicacion.descripcion = data.get('descripcion', publicacion.descripcion)
-    publicacion.categoria = data.get('categoria', publicacion.categoria)
+    
+    # CORREGIDO: usar id_categoria
+    publicacion.id_categoria = data.get('id_categoria', publicacion.id_categoria)
+    
     publicacion.id_locacion = data.get('id_locacion', publicacion.id_locacion)
     publicacion.coordenadas = data.get('coordenadas', publicacion.coordenadas)
     publicacion.fecha_modificacion = datetime.now(timezone.utc)
 
-    # Actualizar imágenes
     nuevas_imagenes = data.get('imagenes')
     if nuevas_imagenes is not None:
+        # 1. Validar cantidad
+        if len(nuevas_imagenes) > 5:
+            raise Exception("No puedes tener más de 5 imágenes por publicación")
+
+        # 2. Borrar anteriores (Lógica de reemplazo completo)
         Imagen.query.filter_by(id_publicacion=publicacion.id).delete()
+        
+        # 3. Insertar nuevas
         for url in nuevas_imagenes:
             nueva_imagen = Imagen(id_publicacion=publicacion.id, url=url)
             db.session.add(nueva_imagen)
 
-    # Actualizar etiquetas por ID
     nuevas_etiquetas_ids = data.get('etiquetas', [])
-    if nuevas_etiquetas_ids:
+    if nuevas_etiquetas_ids is not None:
         etiquetas = Etiqueta.query.filter(Etiqueta.id.in_(nuevas_etiquetas_ids)).all()
-        publicacion.etiquetas = etiquetas  # reemplaza directamente
+        publicacion.etiquetas = etiquetas
 
     db.session.commit()
 
-def eliminar_publicacion(id_publicacion):
-    """Elimina una publicación y sus comentarios e imágenes asociadas."""
-    publicacion = Publicacion.query.get(id_publicacion)
 
+def eliminar_publicacion(id_publicacion):
+    publicacion = Publicacion.query.get(id_publicacion)
     if not publicacion:
         raise Exception("Publicación no encontrada")
 
@@ -271,108 +329,81 @@ def eliminar_publicacion(id_publicacion):
     db.session.commit()
 
 
-# Extras
-
+# Extras (normalizar_texto, calcular_distancia_km, subir_imagen... iguales)
 def normalizar_texto(texto):
-    """Normaliza un texto eliminando acentos y convirtiendo a minúsculas."""
     if not texto:
         return ''
     texto = unicodedata.normalize('NFD', texto)
     texto = texto.encode('ascii', 'ignore').decode('utf-8')
     return texto.lower().strip()
 
-
 def calcular_distancia_km(lat1, lon1, lat2, lon2):
-    """Calcula la distancia en kilómetros entre dos coordenadas geográficas."""
-    R = 6371  # km
+    R = 6371
     dlat = radians(lat2 - lat1)
     dlon = radians(lon2 - lon1)
     a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return R * c
 
-#Para subir imagenes a cloudinary
-
-#def subir_imagen_a_cloudinary(file):
-   # url = "https://api.cloudinary.com/v1_1/redema/image/upload"
-
-    #data = {
-     #   "upload_preset": "redema_imagenes"
-    #}
-
-    #files = {
-    #    "file": file
-    #}
-
-    #response = requests.post(url, data=data, files=files)
-    #if response.status_code == 200:
-     #   return response.json().get("secure_url")
-    #else:
-     #   print("Error al subir la imagen:", response.text)
-      #  return None
-
 def subir_imagen_a_cloudinary(file):
-    """Sube una imagen a Cloudinary y devuelve la URL segura."""
     try:
-        # Configura Cloudinary con los valores desde app.config
         cloudinary.config(
             cloud_name=current_app.config['CLOUDINARY_CLOUD_NAME'],
             api_key=current_app.config['CLOUDINARY_API_KEY'],
             api_secret=current_app.config['CLOUDINARY_API_SECRET']
         )
-
-        # Sube la imagen
         result = cloudinary.uploader.upload(
             file,
             upload_preset=current_app.config['CLOUDINARY_UPLOAD_PRESET']
         )
-
         return result.get("secure_url")
-
     except Exception as e:
         print("Error al subir imagen:", str(e))
         return None
 
-#funcion usada en socket para la parte de notificaciones
 
 def obtener_info_principal_publicacion(id_publicacion):
-    """Devuelve título, descripción, coordenadas e imagen principal de una publicación."""
     pub = Publicacion.query.get(id_publicacion)
     if not pub:
         return {'error': 'Publicación no encontrada'}
 
     imagen_principal = pub.imagenes[0].url if pub.imagenes else None
+    
+    cat_obj = None
+    if pub.categoria_obj:
+        cat_obj = {
+            "id": pub.categoria_obj.id,
+            "nombre": pub.categoria_obj.nombre
+        }
 
     return {
         'id': pub.id,
         'titulo': pub.titulo,
         'descripcion': pub.descripcion,
-        'categoria': pub.categoria,
+        'categoria': cat_obj, # CORREGIDO
         'coordenadas': pub.coordenadas,
         'imagen_principal': imagen_principal
     }
-    
-    
-    
+
 def obtener_publicaciones_por_usuario(id_usuario):
+    # 1. Hacemos la query optimizada (eager loading)
     publicaciones = (
         db.session.query(Publicacion)
         .options(
             joinedload(Publicacion.imagenes),
             joinedload(Publicacion.etiquetas),
-            joinedload(Publicacion.localidad)
+            joinedload(Publicacion.localidad),
+            joinedload(Publicacion.categoria_obj) # IMPORTANTE: Cargar la relación
         )
         .filter(Publicacion.id_usuario == id_usuario)
+        .filter((Publicacion.estado == 0) | (Publicacion.estado.is_(None)))
         .order_by(Publicacion.fecha_creacion.desc())
         .all()
     )
 
-    resultado = []
-    for pub in publicaciones:
-        resultado.append(pub.to_dict())
-
-    return resultado
-
+    # 2. Usamos la lógica que YA escribiste en el modelo.
+    # Esto devuelve la lista de diccionarios con la categoría como objeto.
+    return [pub.to_dict() for pub in publicaciones]
 
 def archivar_publicacion(id_publicacion):
     pub = Publicacion.query.get(id_publicacion)
@@ -382,9 +413,7 @@ def archivar_publicacion(id_publicacion):
     pub.estado = 1
     pub.fecha_modificacion = datetime.now(timezone.utc)
     db.session.commit()
-
     return jsonify({"mensaje": "Publicación archivada"}), 200
-
 
 def desarchivar_publicacion(id_publicacion):
     pub = Publicacion.query.get(id_publicacion)
@@ -394,5 +423,25 @@ def desarchivar_publicacion(id_publicacion):
     pub.estado = 0
     pub.fecha_modificacion = datetime.now(timezone.utc)
     db.session.commit()
-
     return jsonify({"mensaje": "Publicación archivada"}), 200
+
+
+def obtener_mis_publicaciones(id_usuario):
+    # 1. Hacemos la query optimizada (eager loading)
+    publicaciones = (
+        db.session.query(Publicacion)
+        .options(
+            joinedload(Publicacion.imagenes),
+            joinedload(Publicacion.etiquetas),
+            joinedload(Publicacion.localidad),
+            joinedload(Publicacion.categoria_obj) # IMPORTANTE: Cargar la relación
+        )
+        .filter(Publicacion.id_usuario == id_usuario)
+        # Sin filtro de archivadas -> .filter((Publicacion.estado == 0) | (Publicacion.estado.is_(None)))
+        .order_by(Publicacion.fecha_creacion.desc())
+        .all()
+    )
+
+    # 2. Usamos la lógica que YA escribiste en el modelo.
+    # Esto devuelve la lista de diccionarios con la categoría como objeto.
+    return [pub.to_dict() for pub in publicaciones]

@@ -10,10 +10,11 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from PIL import Image as PilImage
 import os
 from core.models import db, Publicacion, Imagen, Usuario
+from urllib.parse import urljoin
+from flask import has_app_context, current_app
 
 def generar_pdf_publicacion(id_publicacion):
-    """Genera un archivo PDF con los datos de una publicación, incluyendo imagen,
-    descripción, contacto, ubicación, fecha, QR y logo."""
+    """Genera un archivo PDF con los datos de una publicación."""
     publicacion = Publicacion.query.get(id_publicacion)
     if not publicacion:
         raise Exception("Publicación no encontrada")
@@ -36,8 +37,13 @@ def generar_pdf_publicacion(id_publicacion):
     )
     style_title = styles['Title']
 
-    # Título
-    titulo = f"{publicacion.categoria.upper()}: {publicacion.titulo or ''}"
+    # Categoría (Usando la relación corregida)
+    nombre_categoria = "SIN CATEGORÍA"
+    if publicacion.categoria_obj:
+        nombre_categoria = publicacion.categoria_obj.nombre
+
+    titulo = f"{nombre_categoria.upper()}: {publicacion.titulo or ''}"
+    
     p_titulo = Paragraph(titulo, style_title)
     w, h = p_titulo.wrap(width - 100, 50)
     p_titulo.drawOn(c, 50, y - h)
@@ -56,7 +62,6 @@ def generar_pdf_publicacion(id_publicacion):
                 display_width = width * 0.6
                 display_height = display_width * img_height / img_width
 
-                # Si se pasa del alto máximo, escalamos nuevamente
                 if display_height > max_display_height:
                     display_height = max_display_height
                     display_width = display_height * img_width / img_height
@@ -80,12 +85,18 @@ def generar_pdf_publicacion(id_publicacion):
     parrafo_tel.drawOn(c, 50, y - h)
     y -= (h + 10)
 
-    # Ubicación
-    if publicacion.coordenadas:
+    # --- CORRECCIÓN DE UBICACIÓN ---
+    direccion = "No disponible"
+    
+    # 1. Prioridad: Nombre de la localidad desde la base de datos
+    if publicacion.localidad:
+        direccion = publicacion.localidad.nombre
+        
+    # 2. Fallback: Si no tiene localidad guardada, intentamos usar las coordenadas (GPS)
+    elif publicacion.coordenadas:
         lat, lon = publicacion.coordenadas
         direccion = coordenadas_a_direccion(lat, lon)
-    else:
-        direccion = "No disponible"
+    # -------------------------------
 
     parrafo_ubi = Paragraph(f"<b>Ubicación:</b> {direccion}", style_normal)
     w, h = parrafo_ubi.wrap(width - 100, height)
@@ -99,30 +110,60 @@ def generar_pdf_publicacion(id_publicacion):
     parrafo_fecha.drawOn(c, 50, y - h)
     y -= (h + 20)
 
-    # Código QR (abajo derecha)
-    url = f"https://tusitio.com/publicacion/{id_publicacion}"
+    # Código QR
+    def _get_frontend_url():
+        frontend_url = None
+        try:
+            if has_app_context():
+                frontend_url = current_app.config.get('FRONTEND_URL')
+        except Exception:
+            frontend_url = None
+
+        if not frontend_url:
+            frontend_url = os.getenv('FRONTEND_URL')
+
+        if not frontend_url:
+            frontend_url = 'http://localhost:3000'
+
+        return frontend_url.rstrip('/')
+
+    base_frontend = _get_frontend_url()
+    url = urljoin(base_frontend + '/', f'publicacion/{id_publicacion}')
     qr = qrcode.make(url)
     qr_buffer = BytesIO()
     qr.save(qr_buffer, format="PNG")
     qr_buffer.seek(0)
     qr_img = PilImage.open(qr_buffer)
-    qr_size = 230  # tamaño más grande del QR
+    qr_size = 230 
     c.drawImage(ImageReader(qr_img), width - qr_size - 10, 20, width=qr_size, height=qr_size)
 
-    # Logo (abajo izquierda)
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..\.."))
-    logo_path = os.path.join(base_dir, "Logo.jpg")
+    # Logo
+    def _get_logo_path():
+        logo_path = None
+        try:
+            if has_app_context():
+                logo_path = current_app.config.get('APP_LOGO_PATH')
+        except Exception:
+            logo_path = None
+
+        if not logo_path:
+            logo_path = os.getenv('APP_LOGO_PATH')
+
+        if logo_path:
+            return os.path.abspath(logo_path)
+
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        return os.path.join(base_dir, 'Logo.jpg')
+
+    logo_path = _get_logo_path()
     if os.path.exists(logo_path):
         try:
             logo_reader = ImageReader(logo_path)
             c.drawImage(logo_reader, 30, 30, width=80, height=80, preserveAspectRatio=True, mask='auto')
-            #print("✅ Logo dibujado correctamente.")
         except Exception as e:
             print("❌ Error dibujando el logo:", e)
     else:
         print(f"❌ Logo NO encontrado en: {logo_path}")
-
-
 
     c.showPage()
     c.save()
@@ -131,8 +172,7 @@ def generar_pdf_publicacion(id_publicacion):
 
 
 def coordenadas_a_direccion(lat, lon):
-    """Convierte coordenadas geográficas en una dirección legible
-    usando el servicio de OpenStreetMap."""
+    """Convierte coordenadas geográficas en una dirección legible."""
     url = "https://nominatim.openstreetmap.org/reverse"
     params = {
         'format': 'json',
@@ -145,14 +185,18 @@ def coordenadas_a_direccion(lat, lon):
         'User-Agent': 'RedemaBot/1.0 (tucorreo@example.com)'
     }
 
-    response = requests.get(url, params=params, headers=headers)
-    if response.status_code == 200:
-        data = response.json()
-        address = data.get('address', {})
-        partes = [
-            address.get('road'),
-            address.get('suburb'),
-            address.get('city') or address.get('town') or address.get('village'),
-        ]
-        return ', '.join([p for p in partes if p]) or "Ubicación no disponible"
+    try:
+        response = requests.get(url, params=params, headers=headers, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            address = data.get('address', {})
+            partes = [
+                address.get('road'),
+                address.get('suburb'),
+                address.get('city') or address.get('town') or address.get('village'),
+            ]
+            return ', '.join([p for p in partes if p]) or "Ubicación no disponible"
+    except Exception as e:
+        print(f"Error obteniendo dirección: {e}")
+        
     return "Ubicación no disponible"
