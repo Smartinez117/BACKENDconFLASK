@@ -21,6 +21,10 @@ zona_arg = pytz.timezone("America/Argentina/Buenos_Aires")
 def crear_publicacion(data, usuario):
     """Crea una nueva publicación con imágenes y etiquetas."""
     try:
+        imagenes = data.get('imagenes', [])
+        if len(imagenes) > 5:
+            return {"error": "No puedes subir más de 5 imágenes por publicación"}, 400
+        
         coord = data.get('coordenadas')
         coordenadas = [coord['lat'], coord['lng']] if coord else None
 
@@ -288,13 +292,20 @@ def actualizar_publicacion(id_publicacion, data):
 
     nuevas_imagenes = data.get('imagenes')
     if nuevas_imagenes is not None:
+        # 1. Validar cantidad
+        if len(nuevas_imagenes) > 5:
+            raise Exception("No puedes tener más de 5 imágenes por publicación")
+
+        # 2. Borrar anteriores (Lógica de reemplazo completo)
         Imagen.query.filter_by(id_publicacion=publicacion.id).delete()
+        
+        # 3. Insertar nuevas
         for url in nuevas_imagenes:
             nueva_imagen = Imagen(id_publicacion=publicacion.id, url=url)
             db.session.add(nueva_imagen)
 
     nuevas_etiquetas_ids = data.get('etiquetas', [])
-    if nuevas_etiquetas_ids:
+    if nuevas_etiquetas_ids is not None:
         etiquetas = Etiqueta.query.filter(Etiqueta.id.in_(nuevas_etiquetas_ids)).all()
         publicacion.etiquetas = etiquetas
 

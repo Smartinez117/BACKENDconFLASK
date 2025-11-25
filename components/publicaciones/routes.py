@@ -31,7 +31,11 @@ def crear():
 def get_publicacion(id_publicacion):
     """Obtiene una publicación por su ID."""
     publicacion = obtener_publicacion_por_id(id_publicacion)
+    if 'error' in publicacion:
+        return jsonify(publicacion), 404
+        
     return jsonify(publicacion), 200
+
 
 # Obtener todas las publicaciones para el home
 @publicaciones_bp.route('/publicaciones', methods=['GET'])
