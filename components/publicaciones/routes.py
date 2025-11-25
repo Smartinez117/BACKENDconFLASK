@@ -12,6 +12,7 @@ from components.publicaciones.services import (
     eliminar_publicacion,
     normalizar_texto,
     obtener_info_principal_publicacion,
+    obtener_mis_publicaciones
 )
 from components.publicaciones.services import subir_imagen_a_cloudinary
 
@@ -143,7 +144,7 @@ def subir_imagenes():
 def publicaciones_usuario_actual():
     """Obtiene todas las publicaciones del usuario autenticado."""
     usuario = g.usuario_actual
-    publicaciones = obtener_publicaciones_por_usuario(usuario.id)
+    publicaciones = obtener_mis_publicaciones(usuario.id)
     return jsonify(publicaciones), 200
 
 

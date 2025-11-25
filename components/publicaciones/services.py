@@ -396,6 +396,7 @@ def obtener_publicaciones_por_usuario(id_usuario):
             joinedload(Publicacion.categoria_obj) # IMPORTANTE: Cargar la relación
         )
         .filter(Publicacion.id_usuario == id_usuario)
+        .filter((Publicacion.estado == 0) | (Publicacion.estado.is_(None)))
         .order_by(Publicacion.fecha_creacion.desc())
         .all()
     )
@@ -423,3 +424,24 @@ def desarchivar_publicacion(id_publicacion):
     pub.fecha_modificacion = datetime.now(timezone.utc)
     db.session.commit()
     return jsonify({"mensaje": "Publicación archivada"}), 200
+
+
+def obtener_mis_publicaciones(id_usuario):
+    # 1. Hacemos la query optimizada (eager loading)
+    publicaciones = (
+        db.session.query(Publicacion)
+        .options(
+            joinedload(Publicacion.imagenes),
+            joinedload(Publicacion.etiquetas),
+            joinedload(Publicacion.localidad),
+            joinedload(Publicacion.categoria_obj) # IMPORTANTE: Cargar la relación
+        )
+        .filter(Publicacion.id_usuario == id_usuario)
+        # Sin filtro de archivadas -> .filter((Publicacion.estado == 0) | (Publicacion.estado.is_(None)))
+        .order_by(Publicacion.fecha_creacion.desc())
+        .all()
+    )
+
+    # 2. Usamos la lógica que YA escribiste en el modelo.
+    # Esto devuelve la lista de diccionarios con la categoría como objeto.
+    return [pub.to_dict() for pub in publicaciones]

@@ -203,6 +203,21 @@ def obtener_publicaciones_usuario(idUsuario):
         return jsonify({'error': str(error)}), 400
 
 
+@usuarios_bp.route('/usuarios/<int:idUsuario>/publicaciones/filtrado', methods=['GET'])
+def obtener_publicaciones_usuario_filtrado(idUsuario):
+    '''Obtiene todas las publicaciones de un usuario específico por su ID, no trae las archivadas.'''
+    try:
+        publicaciones = (
+            Publicacion.query.filter_by(id_usuario=idUsuario)
+            .filter_by(estado=0)
+            .order_by(Publicacion.id.desc())
+            .all()
+        )
+
+        return jsonify([pub.to_dict() for pub in publicaciones]), 200
+    except Exception as error:
+        return jsonify({'error': str(error)}), 400
+
 # Endpoint para verificar si un usuario es admin (role_id == 2)
 @usuarios_bp.route('/usuario/<string:uid>/is_admin', methods=['GET'])
 def es_admin(uid):
