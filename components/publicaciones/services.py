@@ -218,6 +218,8 @@ def obtener_publicaciones_filtradas(
                 pub.fecha_creacion.astimezone(zona_arg).isoformat()
                 if pub.fecha_creacion else None
             ),
+            "coordenadas": pub.coordenadas,
+            "descripcion": pub.descripcion
         })
 
     return resultado

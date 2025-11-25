@@ -151,15 +151,15 @@ def publicaciones_usuario_actual():
 @publicaciones_bp.route('/publicaciones/mapa', methods=['GET'])
 def get_publicaciones_mapa():
     try:
+        # 1. Obtener parámetros
         lat = request.args.get('lat')
         lon = request.args.get('lon')
         radio = request.args.get('radio')
-
         lat = float(lat) if lat else None
         lon = float(lon) if lon else None
         radio = float(radio) if radio else None
 
-        id_categoria = request.args.get('id_categoria') # CORREGIDO
+        id_categoria = request.args.get('id_categoria')
         etiquetas = request.args.get('etiquetas')
         fecha_min = request.args.get('fecha_min')
         fecha_max = request.args.get('fecha_max')
@@ -170,36 +170,50 @@ def get_publicaciones_mapa():
             etiquetas_raw = etiquetas.lower().split(",")
             etiquetas_lista = [normalizar_texto(e) for e in etiquetas_raw]
 
+        # 2. Pedir 500 resultados (o más)
         publicaciones = obtener_publicaciones_filtradas(
             lat=lat,
             lon=lon,
             radio_km=radio,
-            id_categoria=id_categoria, # CORREGIDO
+            id_categoria=id_categoria,
             etiquetas=etiquetas_lista,
             fecha_min=fecha_min,
             fecha_max=fecha_max,
-            id_usuario=id_usuario
+            id_usuario=id_usuario,
+            offset=0,
+            limit=50 # Límite alto para el mapa
         )
 
         publicaciones_mapa = []
+        
+        # 3. BUCLE OPTIMIZADO (Sin consultas extra a la DB)
         for pub in publicaciones:
-            # Como obtener_publicaciones_filtradas ahora devuelve diccionarios (por la corrección abajo),
-            # podemos usarlos directamente o extraer lo necesario.
-            # OJO: obtener_publicaciones_filtradas ya devuelve una lista de dicts, no objetos.
+            # 'pub' ya es un diccionario con toda la info gracias a 'services.py'
             
-            publicaciones_mapa.append({
-                "id": pub["id"],
-                "titulo": pub["titulo"],
-                "categoria": pub["categoria"], # Esto ahora será un objeto {id, nombre}
-                "coordenadas": obtener_info_principal_publicacion(pub["id"])["coordenadas"], # Re-query rápido para coords crudas si no vienen en el dict
-                "imagen_principal": pub["imagenes"][0] if pub["imagenes"] else None
-            })
+            # Validación rápida de coordenadas
+            coords = pub.get("coordenadas")
+            if coords and isinstance(coords, list) and len(coords) == 2:
+                
+                # Extraer imagen (ya viene en la lista 'imagenes' del diccionario)
+                lista_imgs = pub.get("imagenes", [])
+                img_principal = lista_imgs[0] if lista_imgs else None
+
+                publicaciones_mapa.append({
+                    "id": pub["id"],
+                    "titulo": pub["titulo"],
+                    "descripcion": pub.get("descripcion", ""),
+                    "categoria": pub["categoria"], # Ya es el objeto {id, nombre}
+                    "coordenadas": coords,
+                    "imagen_principal": img_principal
+                })
 
         return jsonify(publicaciones_mapa), 200
 
     except Exception as error:
+        print(f"Error Mapa: {error}")
         return jsonify({'error': str(error)}), 400
-
+    
+    
 @publicaciones_bp.route('/publicaciones/<int:id_publicacion>/archivar', methods=['PATCH'])
 def archivar(id_publicacion):
     try:
