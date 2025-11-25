@@ -423,7 +423,7 @@ def desarchivar_publicacion(id_publicacion):
     pub.estado = 0
     pub.fecha_modificacion = datetime.now(timezone.utc)
     db.session.commit()
-    return jsonify({"mensaje": "Publicación archivada"}), 200
+    return jsonify({"mensaje": "Publicación desarchivada"}), 200
 
 
 def obtener_mis_publicaciones(id_usuario):
