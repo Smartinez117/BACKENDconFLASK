@@ -1,22 +1,19 @@
-#endpoints que solo necesitara el adminitrador
 # components/funcionesAdmin/routes.py
 from flask import Blueprint, request, jsonify
 from core.models import db, Usuario, Publicacion, Reporte
 from components.funcionesAdmin.services import actualizar_datos_usuario
 from firebase_admin import auth
 from datetime import datetime
+from core.auth_middleware import require_admin   # <--- IMPORTANTE
 
 
-
-# Blueprint exclusivo para funciones de admin
 admin_bp = Blueprint('admin', __name__)
 
-# Endpoint para que el admin actualice nombre y rol de un usuario
+
+# --- Actualizar usuario ---
 @admin_bp.route('/admin/usuario/<int:id_usuario>', methods=['PATCH'])
+@require_admin
 def admin_actualizar_usuario(id_usuario):
-    """
-    Permite al administrador actualizar únicamente el nombre y rol de un usuario.
-    """
     data = request.get_json()
 
     if not data:
@@ -31,9 +28,10 @@ def admin_actualizar_usuario(id_usuario):
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-# Suspender usuario
 
+# --- Suspender usuario ---
 @admin_bp.route('/admin/usuarios/<int:id_usuario>/suspender', methods=['PATCH'])
+@require_admin
 def suspender_usuario(id_usuario):
     usuario = Usuario.query.get_or_404(id_usuario)
     try:
@@ -45,10 +43,12 @@ def suspender_usuario(id_usuario):
             "usuario": {"id": usuario.id, "estado": usuario.estado}
         }), 200
     except Exception as error:
-        return jsonify({"error": f"No se pudo suspender al usuario: {str(error)}"}), 500
+        return jsonify({"error": str(error)}), 500
 
-# Activar usuario
+
+# --- Activar usuario ---
 @admin_bp.route('/admin/usuarios/<int:id_usuario>/activar', methods=['PATCH'])
+@require_admin
 def activar_usuario(id_usuario):
     usuario = Usuario.query.get_or_404(id_usuario)
     try:
@@ -60,10 +60,12 @@ def activar_usuario(id_usuario):
             "usuario": {"id": usuario.id, "estado": usuario.estado}
         }), 200
     except Exception as error:
-        return jsonify({"error": f"No se pudo activar al usuario: {str(error)}"}), 500
-    
-# Borrar usuario
+        return jsonify({"error": str(error)}), 500
+
+
+# --- Borrar usuario ---
 @admin_bp.route('/admin/usuarios/<int:id_usuario>', methods=['DELETE'])
+@require_admin
 def eliminar_usuario(id_usuario):
     usuario = Usuario.query.get_or_404(id_usuario)
     try:
@@ -74,16 +76,14 @@ def eliminar_usuario(id_usuario):
             "usuario": {"id": usuario.id}
         }), 200
     except Exception as error:
-        return jsonify({"error": f"No se pudo borrar el usuario: {str(error)}"}), 500
+        return jsonify({"error": str(error)}), 500
 
 
+# --- Publicaciones ---
 @admin_bp.route('/admin/publicaciones', methods=['GET'])
+#@require_admin
 def admin_obtener_publicaciones():
-    """
-    Devuelve publicaciones con datos del usuario + permite filtrado para administradores + paginado.
-    """
     try:
-        # Obtener parámetros de filtro
         id_usuario = request.args.get("id_usuario", type=int)
         categoria = request.args.get("categoria", type=str)
         estado = request.args.get("estado", type=str)
@@ -93,29 +93,21 @@ def admin_obtener_publicaciones():
         fecha_desde = request.args.get("fecha_desde", type=str)
         fecha_hasta = request.args.get("fecha_hasta", type=str)
 
-        # Parámetros de paginado
         page = request.args.get("page", default=1, type=int)
         limit = request.args.get("limit", default=15, type=int)
 
-        # Base query
         query = Publicacion.query
 
-        # Filtros dinámicos
         if id_usuario:
             query = query.filter(Publicacion.id_usuario == id_usuario)
-
         if categoria:
             query = query.filter(Publicacion.categoria == categoria)
-
         if estado:
             query = query.filter(Publicacion.estado == estado)
-
         if provincia:
             query = query.filter(Publicacion.provincia == provincia)
-
         if departamento:
             query = query.filter(Publicacion.departamento == departamento)
-
         if localidad:
             query = query.filter(Publicacion.localidad == localidad)
 
@@ -133,20 +125,14 @@ def admin_obtener_publicaciones():
             except:
                 pass
 
-        # Orden por fecha descendente
         query = query.order_by(Publicacion.fecha_creacion.desc())
-
-        # Total antes de paginar
         total = query.count()
 
-        # Aplicar paginado
         publicaciones = query.offset((page - 1) * limit).limit(limit).all()
 
-        # Armar JSON
         resultado = []
         for pub in publicaciones:
-            usuario = pub.usuario  # relationship ya disponible
-
+            usuario = pub.usuario
             resultado.append({
                 **pub.to_dict(),
                 "usuario": {
@@ -166,16 +152,15 @@ def admin_obtener_publicaciones():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# estadísticas para panel admin
+
+# --- Estadísticas ---
 @admin_bp.route('/admin/estadisticas', methods=['GET'])
+#@require_admin
 def admin_stats():
     try:
         total_usuarios = Usuario.query.count()
         total_publicaciones = Publicacion.query.count()
         total_reportes = Reporte.query.count()
-
-        # Si más adelante agregás "Reporte", lo sumamos acá:
-        # total_reportes = Reporte.query.count()
 
         return jsonify({
             "usuarios": total_usuarios,

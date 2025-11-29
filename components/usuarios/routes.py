@@ -8,9 +8,16 @@ from components.usuarios.services import (
     obtener_usuario_por_slug,
 )
 from firebase_admin import auth
-from auth.services import require_auth
+from core.auth_middleware import require_auth
 from flask_socketio import SocketIO, disconnect
 from util import socketio
+from firebase_admin import auth
+import psycopg2
+import os
+
+
+
+auth_bp = Blueprint('auth_bp', __name__)
 
 usuarios_bp = Blueprint('usuarios', __name__)
 
@@ -218,24 +225,66 @@ def obtener_publicaciones_usuario_filtrado(idUsuario):
     except Exception as error:
         return jsonify({'error': str(error)}), 400
 
-# Endpoint para verificar si un usuario es admin (role_id == 2)
-@usuarios_bp.route('/usuario/<string:uid>/is_admin', methods=['GET'])
-def es_admin(uid):
-    """Devuelve si el usuario con `uid` (firebase_uid) es administrador.
-
-    Respuesta JSON: { 'is_admin': true/false } o error si no existe el usuario.
-    """
-    # Obtener el usuario directamente desde la base de datos como modelo
-    usuario = Usuario.query.filter_by(firebase_uid=uid).first()
-
-    if not usuario:
-        return jsonify({'error': 'Usuario no encontrado'}), 404
-
-    # `role_id` almacena el id del rol; 2 == admin
-    is_admin = (getattr(usuario, 'role_id', None) == 2)
 
 
-    return jsonify({'is_admin': bool(is_admin)}), 200
+@usuarios_bp.get("/usuario/is_admin")
+@require_auth
+def is_admin():
+    decoded = request.user
+    return jsonify({"admin": decoded.get("admin", False)})
+
+
+@usuarios_bp.get("/init_claims")
+def init_claims():
+    try:
+        # 1) Conexión a la BD
+        connection = psycopg2.connect(os.getenv("DATABASE_URL"))
+        cursor = connection.cursor()
+
+        # 2) Obtener usuarios admin
+        cursor.execute("SELECT firebase_uid FROM usuarios WHERE role_id = 2")
+        admins = cursor.fetchall()
+
+        if not admins:
+            return jsonify({"message": "No hay usuarios con role_id = 2"}), 200
+
+        # 3) Asignar custom claims
+        total = 0
+        for (firebase_uid,) in admins:
+            if firebase_uid:
+                auth.set_custom_user_claims(firebase_uid, {"admin": True})
+                total += 1
+
+        cursor.close()
+        connection.close()
+
+        return jsonify({
+            "message": "Claims asignados correctamente",
+            "admins_actualizados": total
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     
+# Endpoint para listar todos los usuarios que tengan admin=True en sus claims
+@usuarios_bp.get("/admins")
+@require_auth
+def listar_admins():
+    # Solo permitir que un admin vea la lista
+    decoded = request.user
+    if not decoded.get("admin", False):
+        return jsonify({"error": "No autorizado"}), 403
 
+    admins = []
+    page = auth.list_users()
+    while page:
+        for user in page.users:
+            claims = user.custom_claims or {}
+            if claims.get("admin", False):
+                admins.append({
+                    "email": user.email,
+                    "uid": user.uid
+                })
+        page = page.get_next_page()
 
+    return jsonify(admins), 200
