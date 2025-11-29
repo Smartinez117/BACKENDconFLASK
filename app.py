@@ -90,10 +90,10 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 db.init_app(app)
 migrate = Migrate(app, db)
-frontend_url = os.getenv("FRONTEND_URL", "*")  # * como fallback
+frontend_url = os.getenv("FRONTEND_URL")  # * como fallback
 CORS(
     app,
-    resources={r"/*": {"origins": "*"}},
+    resources={r"/*": {"origins": frontend_url}},
     supports_credentials=False,
     allow_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
@@ -131,7 +131,7 @@ def handle_options():
         resp = app.make_default_options_response()
         headers = resp.headers
 
-        headers["Access-Control-Allow-Origin"] = "*"
+        headers["Access-Control-Allow-Origin"] = frontend_url
         headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
 
