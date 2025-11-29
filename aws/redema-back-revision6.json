@@ -1,16 +1,15 @@
 {
     "compatibilities": [
         "EC2",
-        "FARGATE",
-        "MANAGED_INSTANCES"
+        "MANAGED_INSTANCES",
+        "FARGATE"
     ],
     "containerDefinitions": [
         {
             "cpu": 0,
             "environment": [],
-            "environmentFiles": [],
             "essential": true,
-            "image": "724843234499.dkr.ecr.us-east-2.amazonaws.com/joaquinterzano/redema-back:latest",
+            "image": "724843234499.dkr.ecr.us-east-2.amazonaws.com/joaquinterzano/redema-back:94d79af6bdf3abda34b8dcc6d026e662e1cb4924",
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
@@ -18,8 +17,7 @@
                     "awslogs-create-group": "true",
                     "awslogs-region": "us-east-2",
                     "awslogs-stream-prefix": "ecs"
-                },
-                "secretOptions": []
+                }
             },
             "mountPoints": [],
             "name": "redema-back",
@@ -33,18 +31,16 @@
                 }
             ],
             "systemControls": [],
-            "ulimits": [],
             "volumesFrom": []
         }
     ],
     "cpu": "1024",
-    "enableFaultInjection": false,
     "executionRoleArn": "arn:aws:iam::724843234499:role/ecsTaskExecutionRole",
     "family": "redema-back",
     "memory": "3072",
     "networkMode": "awsvpc",
     "placementConstraints": [],
-    "registeredAt": "2025-11-28T21:34:32.387Z",
+    "registeredAt": "2025-11-29T21:06:50.806Z",
     "registeredBy": "arn:aws:iam::724843234499:root",
     "requiresAttributes": [
         {
@@ -75,13 +71,13 @@
     "requiresCompatibilities": [
         "FARGATE"
     ],
-    "revision": 1,
+    "revision": 6,
     "runtimePlatform": {
         "cpuArchitecture": "X86_64",
         "operatingSystemFamily": "LINUX"
     },
     "status": "ACTIVE",
-    "taskDefinitionArn": "arn:aws:ecs:us-east-2:724843234499:task-definition/redema-back:1",
+    "taskDefinitionArn": "arn:aws:ecs:us-east-2:724843234499:task-definition/redema-back:6",
     "volumes": [],
     "tags": []
 }
