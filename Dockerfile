@@ -3,5 +3,5 @@ WORKDIR /app
 COPY . /app
 RUN pip install uv
 RUN uv sync
-EXPOSE 5000
+EXPOSE 80
 CMD ["uv", "run", "python", "./app.py"]
