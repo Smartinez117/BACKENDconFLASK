@@ -107,7 +107,6 @@
         }
     ],
     "cpu": "1024",
-    "enableFaultInjection": false,
     "executionRoleArn": "arn:aws:iam::724843234499:role/ecsTaskExecutionRole",
     "family": "redema-back-tarea-http",
     "memory": "3072",
