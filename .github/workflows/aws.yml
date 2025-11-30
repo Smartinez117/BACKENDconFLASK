@@ -36,7 +36,7 @@ env:
   ECS_SERVICE: redema-back-tarea-http-service-rqbiyjrd # set this to your Amazon ECS service name
   ECS_CLUSTER: redema-back # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION:
-    aws/redema-back-revision6.json # set this to the path to your Amazon ECS task definition
+    aws/redema-back-tarea-http-revision1.json # set this to the path to your Amazon ECS task definition
     # file, e.g. .aws/task-definition.json
   CONTAINER_NAME:
     redema-back-container # set this to the name of the container in the
