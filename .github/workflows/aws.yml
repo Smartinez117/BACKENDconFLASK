@@ -33,10 +33,11 @@ on:
 env:
   AWS_REGION: us-east-2 # set this to your preferred AWS region, e.g. us-west-1
   ECR_REPOSITORY: joaquinterzano/redema-back # set this to your Amazon ECR repository name
-  ECS_SERVICE: redema-back-def-service-6co6e97v # set this to your Amazon ECS service name
+  ECS_SERVICE_HTTP: redema-back-def-service-6co6e97v # set this to your Amazon ECS service name
+  ECS_SERVICE: redema-back-def-service-yxst9qty # set this to your Amazon ECS service name
   ECS_CLUSTER: redema-back # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION:
-    .aws/redema-back-def-revision1.json # set this to the path to your Amazon ECS task definition
+    .aws/redema-back-def-revision2.json # set this to the path to your Amazon ECS task definition
     # file, e.g. .aws/task-definition.json
   CONTAINER_NAME:
     redema-back-container # set this to the name of the container in the
