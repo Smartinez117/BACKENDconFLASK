@@ -1,3 +1,7 @@
+import eventlet
+eventlet.monkey_patch()
+
+
 from util import socketio
 import firebase_admin
 from dotenv import load_dotenv
@@ -28,8 +32,7 @@ from firebase_admin import credentials, auth as firebase_auth
 import psycopg2
 import os
 import builtins
-import eventlet
-eventlet.monkey_patch()
+
 
 if not hasattr(builtins, "unicode"):
     builtins.unicode = str
@@ -93,10 +96,10 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 db.init_app(app)
 migrate = Migrate(app, db)
-frontend_url = os.getenv("FRONTEND_URL", "*")  # * como fallback
+frontend_url = os.getenv("FRONTEND_URL")  # * como fallback
 CORS(
     app,
-    resources={r"/*": {"origins": "*"}},
+    resources={r"/*": {"origins": frontend_url}},
     supports_credentials=False,
     allow_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
@@ -134,11 +137,16 @@ def handle_options():
         resp = app.make_default_options_response()
         headers = resp.headers
 
-        headers["Access-Control-Allow-Origin"] = "*"
+        headers["Access-Control-Allow-Origin"] = frontend_url
         headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
 
         return resp
+
+
+@app.route('/')
+def health_check():
+    return "Ok"
 
 
 # MAIN
@@ -146,4 +154,4 @@ def handle_options():
 socketio.init_app(app)
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=80, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
