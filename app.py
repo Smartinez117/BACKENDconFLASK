@@ -31,6 +31,7 @@ from flask import Flask, request, jsonify
 from firebase_admin import credentials, auth as firebase_auth
 import psycopg2
 import os
+import json
 import builtins
 
 
@@ -76,7 +77,7 @@ service_account_info = {
 
 # Inicializar Firebase
 # cred = credentials.Certificate("firebase/firebase-credentials.json")
-cred = credentials.Certificate(service_account_info)
+cred = credentials.Certificate(json.loads(os.environ["FIREBASE_CREDENTIALS"]))
 firebase_admin.initialize_app(cred)
 
 # Configuración de la base de datos con SQLAlchemy
