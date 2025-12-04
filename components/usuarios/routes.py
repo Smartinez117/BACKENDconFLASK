@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from core.models import db, Usuario, Publicacion,Notificacion
+from core.models import db, Usuario, Publicacion, Notificacion
 from components.usuarios.services import (
     actualizar_datos_usuario,
     get_usuario,
@@ -9,32 +9,25 @@ from components.usuarios.services import (
 )
 from firebase_admin import auth
 from core.auth_middleware import require_auth
-from flask_socketio import SocketIO, disconnect
-from util import socketio
-from firebase_admin import auth
 import psycopg2
 import os
 
-
-
 auth_bp = Blueprint('auth_bp', __name__)
-
 usuarios_bp = Blueprint('usuarios', __name__)
 
-
-#Endpoint para actualizar información del usuario
+# Endpoint para actualizar información del usuario
 @usuarios_bp.route('/usuario/<int:id_usuario>', methods=['PATCH'])
 def actualizar_usuario(id_usuario):
     '''Actualiza la información de un usuario existente.'''
     data = request.get_json()
     try:
-        actualizar_datos_usuario(id_usuario,data)
+        actualizar_datos_usuario(id_usuario, data)
         return jsonify({'mensaje': 'Usuario actualizado con éxito'}), 200
     except Exception as error:
         return jsonify({'error': str(error)}), 400
 
-#Endpoint para obtener usuarios por su id
-@usuarios_bp.route('/usuario/<int:id_usuario>', methods = ['GET'])
+# Endpoint para obtener usuarios por su id
+@usuarios_bp.route('/usuario/<int:id_usuario>', methods=['GET'])
 def obtener_usuario_por_id(id_usuario):
     '''Obtiene la información de un usuario por su ID.'''
     usuario = get_usuario(id_usuario)
@@ -49,7 +42,6 @@ def obtener_usuario_por_slug_route(slug):
         return jsonify({'error': 'Usuario no encontrado'}), 404
     return jsonify(usuario), 200
 
-
 @usuarios_bp.route('/usuario/<int:id_usuario>', methods=['DELETE'])
 def eliminar_usuario(id_usuario):
     '''Elimina un usuario por su ID.'''
@@ -63,8 +55,7 @@ def eliminar_usuario(id_usuario):
 
     return jsonify({'mensaje': f'Usuario {usuario.nombre} eliminado correctamente'}), 200
 
-
-#endpoint para obtener los datos de un usuario por el uid
+# Endpoint para obtener los datos de un usuario por el uid
 # (usando en la interface de configuraciones de perfil)
 @usuarios_bp.route('/api/userconfig', methods=['GET'])
 def user_config():
@@ -95,8 +86,7 @@ def user_config():
     except Exception as e:
         return jsonify({'error': 'Token inválido o expirado', 'detalle': str(e)}), 401
 
-#Endpoints para el panel administrativo:
-
+# Endpoints para el panel administrativo:
 @usuarios_bp.route("/api/usuarios", methods=["GET"])
 def get_usuarios():
     ''' Obtiene una lista paginada de usuarios, con opción de búsqueda por nombre o email.'''
@@ -123,78 +113,9 @@ def get_usuarios():
         "pages": pagination.pages
     })
 
-
-
-#diccionario de usuarios conectados
-userconnected = {}
-sid_uid_map={}
-#funcion para autenticar a los usuarios desde el socket
-@socketio.on('connect', namespace='/connection')
-def on_connect(auth_data):
-    print("NAMESPACE:", request.namespace)
-    print("clave solucion funcional")
-
-    '''Autentica al usuario que se conecta al socket usando el token de Firebase.'''
-    token = auth_data.get('token') if auth_data else None
-    if not token:
-        disconnect()
-        return
-
-    try:
-        decoded_token = auth.verify_id_token(token)
-        uid = decoded_token.get('uid')
-        name= decoded_token.get('name')
-        sid = request.sid #<-- identificador unico de inicio de sesion del socket
-        # para cada conexion de cada user
-        print(uid,name,sid)
-        if not uid:
-            disconnect()
-            return
-        usuario_conectado(uid,name,sid)
-        from components.notificaciones.services import notificarconectado
-        id_user= obtener_usuario_por_uid(uid).id
-        #notificarconectado(id_user,uid)  <---- solo falta descomentar esto y ya funcionaria o bueno probarlo mas bien
-    except Exception:
-        disconnect()
-
-#marcar como desconectado a los usuarios que se desconectan
-@socketio.on('disconnect', namespace='/connection')
-def on_disconnect():
-    '''Marca al usuario como desconectado cuando se desconecta del socket.'''
-    sid = request.sid
-    print("clave")
-   # uid = sid_uid_map.get(sid)
-    if sid not in sid_uid_map:
-        print("ingorno disconection")
-        return
-    uid= sid_uid_map.pop(sid)
-    if uid is None:
-        print("Desconexión ignorada (SID no registrado)", sid)
-        return
-   # eliminar el SID
-    #sid_uid_map.pop(sid, None)
-    if userconnected.get(uid, {}).get("sid") == sid:
-     usuario_desconectado(uid)
-
-#agrego a cada user con su uid,name y sid a un diccionario de user connected
-def usuario_conectado(uid,name,sid):
-    '''Agrega un usuario al diccionario de usuarios conectados.'''
-    userconnected[uid]= {
-        "sid": sid,
-        "name": name
-        }
-    print('usuarios conectados:',userconnected)
-    sid_uid_map[sid]=uid
-
-
-def usuario_desconectado(uid):
-    '''Elimina un usuario del diccionario de usuarios conectados.'''
-    #userconnected.pop(uid,None)
-    print('usuarios conectados(FD):',userconnected)
+# --- SECCIÓN DE SOCKETS ELIMINADA (connect, disconnect, userconnected) ---
 
 # Endpoint para obtener publicaciones de un usuario por su id
-#idUsuario : es el id traido desde el endpoint
-#id_usuario : es un atributo de cada publicacion, se ven parecidos pero la diferencia esta en el guión bajo
 @usuarios_bp.route('/usuarios/<int:idUsuario>/publicaciones', methods=['GET'])
 def obtener_publicaciones_usuario(idUsuario):
     '''Obtiene todas las publicaciones de un usuario específico por su ID.'''
@@ -208,7 +129,6 @@ def obtener_publicaciones_usuario(idUsuario):
         return jsonify([pub.to_dict() for pub in publicaciones]), 200
     except Exception as error:
         return jsonify({'error': str(error)}), 400
-
 
 @usuarios_bp.route('/usuarios/<int:idUsuario>/publicaciones/filtrado', methods=['GET'])
 def obtener_publicaciones_usuario_filtrado(idUsuario):
@@ -225,14 +145,11 @@ def obtener_publicaciones_usuario_filtrado(idUsuario):
     except Exception as error:
         return jsonify({'error': str(error)}), 400
 
-
-
 @usuarios_bp.get("/usuario/is_admin")
 @require_auth
 def is_admin():
     decoded = request.user
     return jsonify({"admin": decoded.get("admin", False)})
-
 
 @usuarios_bp.get("/init_claims")
 def init_claims():
