@@ -316,17 +316,25 @@ def actualizar_publicacion(id_publicacion, data):
 
 def eliminar_publicacion(id_publicacion):
     publicacion = Publicacion.query.get(id_publicacion)
+    
     if not publicacion:
         raise Exception("Publicación no encontrada")
 
+    # Mantenemos el borrado manual de comentarios por seguridad o lógica extra
     for comentario in Comentario.query.filter_by(id_publicacion=publicacion.id).all():
         eliminar_comentario(comentario.id)
 
+    # Mantenemos el borrado manual de imágenes (ESTO ES LO QUE PEDISTE NO TOCAR)
+    # Es necesario para borrar los archivos de Cloudinary/Storage
     for img in Imagen.query.filter_by(id_publicacion=publicacion.id).all():
         eliminar_imagen(img.id)
 
+    # Al ejecutar delete aquí, SQLAlchemy ahora borrará automáticamente las 'solicitudes_contacto'
+    # gracias al 'cascade' que agregamos en models.py, evitando el error NotNullViolation.
     db.session.delete(publicacion)
     db.session.commit()
+    
+    return {"mensaje": "Publicación eliminada correctamente"}
 
 
 # Extras (normalizar_texto, calcular_distancia_km, subir_imagen... iguales)
