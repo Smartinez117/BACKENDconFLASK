@@ -1,8 +1,8 @@
 from flask import Blueprint, jsonify, request
+from sqlalchemy.orm import joinedload
 from core.models import db, Provincia, Departamento, Localidad
 
 ubicacion_bp = Blueprint('ubicacion', __name__, url_prefix='/api/ubicacion')
-
 
 @ubicacion_bp.route('/provincias', methods=['GET'])
 def obtener_provincias():
@@ -15,9 +15,9 @@ def obtener_provincias():
 def obtener_departamentos():
     '''Obtiene departamentos por provincia.'''
     provincia_id = request.args.get('provincia_id')
+    
     if not provincia_id:
         return jsonify({"error": "Falta el parámetro provincia_id"}), 400
-
     departamentos = (
         Departamento.query.filter_by(id_provincia=provincia_id)
         .order_by(Departamento.nombre).all()
@@ -29,6 +29,7 @@ def obtener_departamentos():
 def obtener_localidades():
     '''Obtiene localidades por departamento.'''
     departamento_id = request.args.get('departamento_id')
+    
     if not departamento_id:
         return jsonify({"error": "Falta el parámetro departamento_id"}), 400
 
@@ -36,48 +37,60 @@ def obtener_localidades():
         Localidad.query.filter_by(id_departamento=departamento_id)
         .order_by(Localidad.nombre).all()
     )
+    
     return jsonify([
         {
             'id': l.id,
             'nombre': l.nombre,
-            'latitud': l.latitud,
-            'longitud': l.longitud
+            'latitud': float(l.latitud) if l.latitud is not None else None,
+            'longitud': float(l.longitud) if l.longitud is not None else None
         } for l in localidades
     ])
 
+
 @ubicacion_bp.route('/localidades/<int:id_localidad>', methods=['GET'])
 def obtener_localidad(id_localidad):
-    '''Obtiene detalles de una localidad por su ID.'''
-    localidad = Localidad.query.get(id_localidad)
+    '''
+    OPTIMIZACIÓN CLAVE:
+    Usamos joinedload para traer los datos del Departamento en la 
+    misma consulta que la Localidad. 1 viaje en lugar de 2.
+    '''
+    localidad = Localidad.query\
+        .options(joinedload(Localidad.departamento))\
+        .get(id_localidad)
 
     if not localidad:
         return jsonify({'error': 'Localidad no encontrada'}), 404
 
-    departamento = Departamento.query.get(localidad.id_departamento)
-    provincia_id = departamento.id_provincia if departamento else None
+    dept = localidad.departamento
+    provincia_id = dept.id_provincia if dept else None
 
     return jsonify({
         'id': localidad.id,
         'nombre': localidad.nombre,
         'id_departamento': localidad.id_departamento,
         'id_provincia': provincia_id,
-        'latitud': float(localidad.latitud) if localidad.latitud else None,
-        'longitud': float(localidad.longitud) if localidad.longitud else None
+        'latitud': float(localidad.latitud) if localidad.latitud is not None else None,
+        'longitud': float(localidad.longitud) if localidad.longitud is not None else None
     })
+
 
 @ubicacion_bp.route('/localidades/nombre/<int:id_localidad>', methods=['GET'])
 def obtener_nombre_localidad(id_localidad):
-    '''Obtiene el nombre de una localidad por su ID.'''
-    localidad = Localidad.query.get(id_localidad)
+    resultado = db.session.query(Localidad.id, Localidad.nombre)\
+        .filter_by(id=id_localidad)\
+        .first()
 
-    if not localidad:
+    if not resultado:
         return jsonify({'error': 'Localidad no encontrada'}), 404
 
     return jsonify({
-        'id': localidad.id,
-        'nombre': localidad.nombre,
+        'id': resultado.id,
+        'nombre': resultado.nombre,
     })
 
+# --- ENDPOINTS POST, PUT, DELETE (Se mantienen igual) ---
+# ... (tu código de crear/borrar estaba bien, no requiere optimización de lectura)
 @ubicacion_bp.route('/localidades', methods=['POST'])
 def crear_localidad():
     ''' Crea una nueva localidad.'''

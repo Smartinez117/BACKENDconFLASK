@@ -448,7 +448,8 @@ class SolicitudContacto(db.Model):
     # Relaciones
     solicitante = db.relationship('Usuario', foreign_keys=[id_solicitante], backref='solicitudes_enviadas')
     receptor = db.relationship('Usuario', foreign_keys=[id_receptor], backref='solicitudes_recibidas')
-    publicacion = db.relationship('Publicacion', backref='solicitudes')
+    
+    publicacion = db.relationship('Publicacion', backref=db.backref('solicitudes', cascade='all, delete-orphan'))
     
     def to_dict(self):
         return {
