@@ -1,41 +1,45 @@
 import eventlet
 eventlet.monkey_patch()
 
+
+from util import socketio
+import firebase_admin
+from dotenv import load_dotenv
+from components.contactos.routes import contactos_bp
+from components.categorias.routes import categorias_bp
+from components.funcionesAdmin.routes import admin_bp
+from components.refugios.routes import overpass_bp
+from components.roles.routes import roles_bp
+from components.etiquetas.routes import etiquetas_bp
+from components.ubicacion.routes import ubicacion_bp
+from components.pdf.routes import pdf_bp
+from components.qr.routes import qr_bp
+from components.reportes.routes import reportes_bp
+from components.notificaciones.routes import notificaciones_bp
+from components.imagenes.routes import imagenes_bp
+from components.comentarios.routes import comentarios_bp
+from components.usuarios.routes import usuarios_bp
+from components.publicaciones.routes import publicaciones_bp
+from auth.routes import auth_bp
+from core.models import db, Usuario
+from flask_migrate import Migrate
+from datetime import datetime
+from functools import wraps
+from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, request, jsonify
+from firebase_admin import credentials, auth as firebase_auth
+import psycopg2
+import os
+import json
 import builtins
+
+
 if not hasattr(builtins, "unicode"):
     builtins.unicode = str
 
-import os
-import psycopg2
-from firebase_admin import credentials, auth as firebase_auth
-from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS
-from functools import wraps
-from datetime import datetime
-from flask_migrate import Migrate
-from core.models import db, Usuario
-from auth.routes import auth_bp
-from components.publicaciones.routes import publicaciones_bp
-from components.usuarios.routes import usuarios_bp
-from components.comentarios.routes import comentarios_bp
-from components.imagenes.routes import imagenes_bp
-from components.notificaciones.routes import notificaciones_bp
-from components.reportes.routes import reportes_bp
-from components.qr.routes import qr_bp
-from components.pdf.routes import pdf_bp
-from components.ubicacion.routes import ubicacion_bp
-from components.etiquetas.routes import etiquetas_bp
-from components.roles.routes import roles_bp
-from components.refugios.routes import overpass_bp
-from components.funcionesAdmin.routes import admin_bp
-from components.categorias.routes import categorias_bp
-from components.contactos.routes import contactos_bp
 
-from dotenv import load_dotenv
-import firebase_admin
 #
-from util import socketio
 load_dotenv()
 
 app = Flask(__name__)
@@ -73,7 +77,7 @@ service_account_info = {
 
 # Inicializar Firebase
 # cred = credentials.Certificate("firebase/firebase-credentials.json")
-cred = credentials.Certificate(service_account_info)
+cred = credentials.Certificate(json.loads(os.environ["FIREBASE_CREDENTIALS"]))
 firebase_admin.initialize_app(cred)
 
 # Configuración de la base de datos con SQLAlchemy
@@ -82,18 +86,21 @@ firebase_admin.initialize_app(cred)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_size": 5,         # Mantiene máximo 5 conexiones abiertas permanentemente por instancia
+    # Mantiene máximo 5 conexiones abiertas permanentemente por instancia
+    "pool_size": 5,
     "max_overflow": 10,     # Permite crear 10 extra si hay mucha carga momentánea
     "pool_timeout": 30,     # Espera 30 seg por una conexión antes de dar error
-    "pool_recycle": 1800,   # Recicla conexiones cada 30 mins para evitar que mueran silenciosamente
-    "pool_pre_ping": True   # Verifica que la conexión sirva antes de usarla (VITAL)
+    # Recicla conexiones cada 30 mins para evitar que mueran silenciosamente
+    "pool_recycle": 1800,
+    # Verifica que la conexión sirva antes de usarla (VITAL)
+    "pool_pre_ping": True
 }
 db.init_app(app)
 migrate = Migrate(app, db)
-frontend_url = os.getenv("FRONTEND_URL", "*")  # * como fallback
+frontend_url = os.getenv("FRONTEND_URL")  # * como fallback
 CORS(
     app,
-    resources={r"/*": {"origins": "*"}},
+    resources={r"/*": {"origins": frontend_url}},
     supports_credentials=False,
     allow_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
@@ -131,11 +138,17 @@ def handle_options():
         resp = app.make_default_options_response()
         headers = resp.headers
 
-        headers["Access-Control-Allow-Origin"] = "*"
+        headers["Access-Control-Allow-Origin"] = frontend_url
         headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
 
         return resp
+
+
+@app.route('/')
+def health_check():
+    return "Ok"
+
 
 # MAIN
 # Inicializas socketio con la app
