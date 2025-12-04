@@ -54,7 +54,7 @@ def obtener_publicaciones_filtradas(
             (Publicacion.estado == 0) | (Publicacion.estado.is_(None))
         )
 
-        # 1. Filtros Básicos
+        # Filtros básicos
         if id_categoria:
             query = query.filter(Publicacion.id_categoria == id_categoria)
         if id_usuario:
@@ -66,7 +66,7 @@ def obtener_publicaciones_filtradas(
             dt = datetime.strptime(fecha_max, '%Y-%m-%d')
             query = query.filter(Publicacion.fecha_creacion <= dt)
 
-        # 2. Filtro Etiquetas (Optimizado con JOIN)
+        # Filtro Etiquetas
         if etiquetas:
             etiquetas_norm = [normalizar_texto(e) for e in etiquetas if e.strip()]
             if etiquetas_norm:
@@ -74,25 +74,21 @@ def obtener_publicaciones_filtradas(
                     func.lower(Etiqueta.nombre).in_(etiquetas_norm)
                 )
 
-        # 3. Filtro Geoespacial (SQL Haversine)
+        # --- CORRECCIÓN FILTRO GEOESPACIAL (ARRAY) ---
         if lat is not None and lon is not None and radio_km is not None:
-            # Asumiendo coordenadas como array/json [lat, lng]
-            pub_lat = cast(Publicacion.coordenadas[0], Float)
-            pub_lon = cast(Publicacion.coordenadas[1], Float)
+            # Acceso directo al ARRAY(Float). Indices SQL empiezan en 1.
+            pub_lat = Publicacion.coordenadas[1]
+            pub_lon = Publicacion.coordenadas[2]
 
-            # Fórmula: 6371 * acos(...)
             distancia = 6371 * func.acos(
                 func.least(1.0, func.greatest(-1.0, 
-                    func.cos(func.radians(lat)) *
-                    func.cos(func.radians(pub_lat)) *
-                    func.cos(func.radians(pub_lon) - func.radians(lon)) +
-                    func.sin(func.radians(lat)) *
-                    func.sin(func.radians(pub_lat))
+                    func.sin(func.radians(lat)) * func.sin(func.radians(pub_lat)) +
+                    func.cos(func.radians(lat)) * func.cos(func.radians(pub_lat)) * func.cos(func.radians(pub_lon) - func.radians(lon))
                 ))
             )
             query = query.filter(distancia <= radio_km)
+        # ---------------------------------------------
 
-        # 4. Carga de relaciones (Eager Loading)
         query = query.options(
             joinedload(Publicacion.imagenes),
             joinedload(Publicacion.localidad),
@@ -100,7 +96,6 @@ def obtener_publicaciones_filtradas(
             joinedload(Publicacion.etiquetas)
         )
 
-        # 5. Orden y Paginación (Al final para que sea correcto)
         query = query.order_by(Publicacion.fecha_creacion.desc())
         query = query.offset(offset).limit(limit)
         
@@ -110,8 +105,10 @@ def obtener_publicaciones_filtradas(
 
     except Exception as e:
         print(f"Error filtro: {e}")
+        traceback.print_exc()
         return []
-
+    
+    
 def obtener_todas_publicaciones(offset=0, limit=12):
     """Obtiene todas las publicaciones para el home (Optimizado)."""
     try:
@@ -136,45 +133,40 @@ def obtener_todas_publicaciones(offset=0, limit=12):
         pass 
 
 def obtener_publicaciones_para_mapa(filtros):
-    """
-    Query ultra-rápida para el mapa. 
-    Solo devuelve lo estrictamente necesario.
-    """
+    """Query optimizada para el mapa (versión Array corregida)."""
     try:
-        # Iniciamos query base
         query = db.session.query(Publicacion).filter(
             (Publicacion.estado == 0) | (Publicacion.estado.is_(None))
         )
 
-        # Aplicamos mismos filtros que en el listado
         if filtros.get('id_categoria'):
             query = query.filter(Publicacion.id_categoria == filtros['id_categoria'])
         if filtros.get('id_usuario'):
             query = query.filter(Publicacion.id_usuario == filtros['id_usuario'])
-        # ... fechas y etiquetas si fueran necesarias ...
 
-        # Filtro Distancia SQL
+        # --- CORRECCIÓN FILTRO GEOESPACIAL (ARRAY) ---
         lat = filtros.get('lat')
         lon = filtros.get('lon')
         radio = filtros.get('radio')
 
         if lat and lon and radio:
-            pub_lat = cast(Publicacion.coordenadas[0], Float)
-            pub_lon = cast(Publicacion.coordenadas[1], Float)
-            distancia = 6371 * func.acos(func.least(1.0, func.greatest(-1.0, 
-                func.cos(func.radians(lat)) * func.cos(func.radians(pub_lat)) *
-                func.cos(func.radians(pub_lon) - func.radians(lon)) +
-                func.sin(func.radians(lat)) * func.sin(func.radians(pub_lat))
-            )))
-            query = query.filter(distancia <= radio)
+            pub_lat = Publicacion.coordenadas[1]
+            pub_lon = Publicacion.coordenadas[2]
 
-        # Cargamos SOLO la categoría y las imágenes para tener la data mínima
+            distancia = 6371 * func.acos(
+                func.least(1.0, func.greatest(-1.0, 
+                    func.sin(func.radians(lat)) * func.sin(func.radians(pub_lat)) +
+                    func.cos(func.radians(lat)) * func.cos(func.radians(pub_lat)) * func.cos(func.radians(pub_lon) - func.radians(lon))
+                ))
+            )
+            query = query.filter(distancia <= radio)
+        # ---------------------------------------------
+
         query = query.options(
             joinedload(Publicacion.categoria_obj),
             joinedload(Publicacion.imagenes) 
         )
         
-        # Limitamos a 200-500 pines para no saturar el mapa
         resultados = query.limit(200).all()
 
         mapa_data = []
@@ -187,17 +179,17 @@ def obtener_publicaciones_para_mapa(filtros):
                 "titulo": pub.titulo,
                 "categoria": cat_obj,
                 "coordenadas": pub.coordenadas,
-                "imagen_principal": img_principal,
-                "descripcion": pub.descripcion # Opcional
+                "imagen_principal": img_principal
             })
             
         return mapa_data
 
     except Exception as e:
         print(f"Error en mapa backend: {e}")
+        traceback.print_exc()
         return []
 
-# --- MANTENEMOS TUS OTRAS FUNCIONES (CREAR, UPDATE, DELETE, GET_BY_ID) ---
+
 
 def crear_publicacion(data, usuario):
     try:
