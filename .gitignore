@@ -12,3 +12,5 @@ firebase/firebase-credentials.json
 #Ignorar claves
 .env
 .venv
+.vercel
+.env*.local

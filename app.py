@@ -69,7 +69,8 @@ service_account_info = {
 }
 
 # Inicializar Firebase
-cred = credentials.Certificate(service_account_info)
+# cred = credentials.Certificate("firebase/firebase-credentials.json")
+cred = credentials.Certificate(json.loads(os.environ["FIREBASE_CREDENTIALS"]))
 firebase_admin.initialize_app(cred)
 
 # Configuración de la base de datos con SQLAlchemy (Session Pooler optimizado)
@@ -85,11 +86,10 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 db.init_app(app)
 migrate = Migrate(app, db)
-frontend_url = os.getenv("FRONTEND_URL", "*")  
-
+frontend_url = os.getenv("FRONTEND_URL")  # * como fallback
 CORS(
     app,
-    resources={r"/*": {"origins": "*"}},
+    resources={r"/*": {"origins": frontend_url}},
     supports_credentials=False,
     allow_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
@@ -124,11 +124,21 @@ def handle_options():
     if request.method == "OPTIONS":
         resp = app.make_default_options_response()
         headers = resp.headers
-        headers["Access-Control-Allow-Origin"] = "*"
+
+        headers["Access-Control-Allow-Origin"] = frontend_url
         headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
         return resp
 
-# MAIN: Usamos app.run estándar (Flask puro) en lugar de socketio.run
+
+@app.route('/')
+def health_check():
+    return "Ok"
+
+
+# MAIN
+# Inicializas socketio con la app
+socketio.init_app(app)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
