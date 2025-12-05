@@ -13,6 +13,8 @@ from flask_cors import CORS
 from functools import wraps
 from datetime import datetime
 from flask_migrate import Migrate
+# 1. IMPORTANTE: Importar ProxyFix para Google Cloud Run/Render
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Imports de modelos y rutas
 from core.models import db, Usuario
@@ -40,6 +42,16 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# 2. IMPORTANTE: Configurar ProxyFix
+# Esto le dice a Flask que confíe en los headers HTTPS de Cloud Run
+app.wsgi_app = ProxyFix(
+    app.wsgi_app, 
+    x_for=1, 
+    x_proto=1, 
+    x_host=1, 
+    x_prefix=1
+)
+
 def cerrar_sesion():
     """
     Cierra la sesión de base de datos de forma segura.
@@ -63,11 +75,11 @@ firebase_admin.initialize_app(cred)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_size": 5,         
-    "max_overflow": 10,     
-    "pool_timeout": 30,     
-    "pool_recycle": 1800,   
-    "pool_pre_ping": True   
+    "pool_size": 5,        
+    "max_overflow": 10,    
+    "pool_timeout": 30,    
+    "pool_recycle": 1800,  
+    "pool_pre_ping": True  
 }
 
 db.init_app(app)
@@ -98,7 +110,11 @@ app.register_blueprint(reportes_bp)
 app.register_blueprint(qr_bp)
 app.register_blueprint(pdf_bp)
 app.register_blueprint(ubicacion_bp)
-app.register_blueprint(etiquetas_bp, url_prefix='/api/etiquetas')
+
+# 3. CAMBIO CRÍTICO: Quitamos el url_prefix aquí
+# Porque ya lo pusiste manualmente en routes.py (/api/etiquetas)
+app.register_blueprint(etiquetas_bp) 
+
 app.register_blueprint(roles_bp)
 app.register_blueprint(overpass_bp)
 app.register_blueprint(admin_bp, url_prefix="/api")

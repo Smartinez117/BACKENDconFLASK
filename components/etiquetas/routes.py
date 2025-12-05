@@ -2,9 +2,10 @@ from flask import Blueprint, request, jsonify
 from core.models import db, Etiqueta
 from sqlalchemy.exc import IntegrityError
 
+# 1. Quitamos el url_prefix para tener control total de la ruta
 etiquetas_bp = Blueprint('etiquetas', __name__)
 
-
+# 2. Definimos la ruta explícita SIN barra al final
 @etiquetas_bp.route('/api/etiquetas', methods=['GET'])
 def listar_etiquetas():
     """Lista todas las etiquetas ordenadas por nombre."""
@@ -12,6 +13,7 @@ def listar_etiquetas():
     return jsonify([{"id": e.id, "nombre": e.nombre} for e in etiquetas])
 
 
+# 3. Lo mismo para el POST: ruta sin barra final
 @etiquetas_bp.route('/api/etiquetas', methods=['POST'])
 def crear_etiqueta():
     """Crea una nueva etiqueta si el nombre es válido y no existe."""
@@ -33,6 +35,7 @@ def crear_etiqueta():
     return jsonify({"id": etiqueta.id, "nombre": etiqueta.nombre}), 201
 
 
+# 4. Actualizamos las rutas con ID para incluir el prefijo manualmente
 @etiquetas_bp.route('/api/etiquetas/<int:id_etiqueta>', methods=['GET'])
 def obtener_etiqueta(id_etiqueta):
     """Obtiene una etiqueta por su ID."""
