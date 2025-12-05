@@ -2,17 +2,19 @@ from flask import Blueprint, request, jsonify
 from core.models import db, Etiqueta
 from sqlalchemy.exc import IntegrityError
 
-etiquetas_bp = Blueprint('etiquetas', __name__, url_prefix='/api/etiquetas')
+# 1. Quitamos el url_prefix para tener control total de la ruta
+etiquetas_bp = Blueprint('etiquetas', __name__)
 
-
-@etiquetas_bp.route('/', methods=['GET'])
+# 2. Definimos la ruta explícita SIN barra al final
+@etiquetas_bp.route('/api/etiquetas', methods=['GET'])
 def listar_etiquetas():
     """Lista todas las etiquetas ordenadas por nombre."""
     etiquetas = Etiqueta.query.order_by(Etiqueta.nombre).all()
     return jsonify([{"id": e.id, "nombre": e.nombre} for e in etiquetas])
 
 
-@etiquetas_bp.route('/', methods=['POST'])
+# 3. Lo mismo para el POST: ruta sin barra final
+@etiquetas_bp.route('/api/etiquetas', methods=['POST'])
 def crear_etiqueta():
     """Crea una nueva etiqueta si el nombre es válido y no existe."""
     data = request.json
@@ -33,7 +35,8 @@ def crear_etiqueta():
     return jsonify({"id": etiqueta.id, "nombre": etiqueta.nombre}), 201
 
 
-@etiquetas_bp.route('/<int:id_etiqueta>', methods=['GET'])
+# 4. Actualizamos las rutas con ID para incluir el prefijo manualmente
+@etiquetas_bp.route('/api/etiquetas/<int:id_etiqueta>', methods=['GET'])
 def obtener_etiqueta(id_etiqueta):
     """Obtiene una etiqueta por su ID."""
     etiqueta = Etiqueta.query.get(id_etiqueta)
@@ -42,7 +45,7 @@ def obtener_etiqueta(id_etiqueta):
     return jsonify({"id": etiqueta.id, "nombre": etiqueta.nombre})
 
 
-@etiquetas_bp.route('/<int:id_etiqueta>', methods=['PATCH'])
+@etiquetas_bp.route('/api/etiquetas/<int:id_etiqueta>', methods=['PATCH'])
 def actualizar_etiqueta(id_etiqueta):
     """Actualiza el nombre de una etiqueta existente."""
     etiqueta = Etiqueta.query.get(id_etiqueta)
@@ -67,7 +70,7 @@ def actualizar_etiqueta(id_etiqueta):
     return jsonify({"id": etiqueta.id, "nombre": etiqueta.nombre})
 
 
-@etiquetas_bp.route('/<int:id_etiqueta>', methods=['DELETE'])
+@etiquetas_bp.route('/api/etiquetas/<int:id_etiqueta>', methods=['DELETE'])
 def eliminar_etiqueta(id_etiqueta):
     """Elimina una etiqueta por su ID."""
     etiqueta = Etiqueta.query.get(id_etiqueta)
