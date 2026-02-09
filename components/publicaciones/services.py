@@ -37,6 +37,7 @@ def serializar_publicacion_lista(pub):
         "etiquetas": [et.nombre for et in pub.etiquetas],
         "fecha_creacion": pub.fecha_creacion.astimezone(zona_arg).isoformat() if pub.fecha_creacion else None,
         "coordenadas": pub.coordenadas,
+        "estado": pub.estado,
         # No enviamos descripción completa para ahorrar datos en listas
     }
 
