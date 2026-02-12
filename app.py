@@ -163,7 +163,7 @@ def tarea_archivar_publicaciones():
                 UPDATE publicaciones 
                 SET estado = 1 
                 WHERE estado = 0 
-                AND fecha_creacion < NOW() - INTERVAL '6 months'
+                AND COALESCE(fecha_modificacion, fecha_creacion) < NOW() - INTERVAL '6 months'
                 RETURNING id, id_usuario, titulo
             """)
             
