@@ -15,6 +15,9 @@ from flask_migrate import Migrate
 # 1. IMPORTANTE: Importar ProxyFix para Google Cloud Run/Render
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from flask_apscheduler import APScheduler
+from sqlalchemy import text
+
 # Imports de modelos y rutas
 from core.models import db, Usuario
 from auth.routes import auth_bp
@@ -33,6 +36,8 @@ from components.refugios.routes import overpass_bp
 from components.funcionesAdmin.routes import admin_bp
 from components.categorias.routes import categorias_bp
 from components.contactos.routes import contactos_bp
+from core.models import db, Usuario, Notificacion 
+from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 import firebase_admin
@@ -50,6 +55,11 @@ app.wsgi_app = ProxyFix(
     x_host=1, 
     x_prefix=1
 )
+
+
+app.config['SCHEDULER_API_ENABLED'] = True
+scheduler = APScheduler()
+
 
 def cerrar_sesion():
     """
@@ -145,6 +155,62 @@ def handle_options():
         headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
         return resp
 
-# MAIN: Usamos app.run estándar (Flask puro) en lugar de socketio.run
+def tarea_archivar_publicaciones():
+    with app.app_context():
+        try:
+            print(f"[{datetime.now()}] Iniciando proceso de archivado...")
+            sql_query = text("""
+                UPDATE publicaciones 
+                SET estado = 1 
+                WHERE estado = 0 
+                AND fecha_creacion < NOW() - INTERVAL '6 months'
+                RETURNING id, id_usuario, titulo
+            """)
+            
+            result = db.session.execute(sql_query)
+            archivos_procesados = result.fetchall()
+            if archivos_procesados:
+                print(f"Se encontraron {len(archivos_procesados)} publicaciones para archivar.")
+                
+                for pub in archivos_procesados:
+                    p_id = pub.id
+                    p_usuario = pub.id_usuario
+                    p_titulo = pub.titulo
+
+                    nueva_noti = Notificacion(
+                        id_usuario=p_usuario,
+                        titulo='Publicación Archivada',
+                        descripcion=f'Tu publicación "{p_titulo}" ha sido archivada automáticamente por inactividad (6 meses). Puedes desarchivarla desde tu perfil.',
+                        tipo='sistema',
+                        fecha_creacion=datetime.now(timezone.utc),
+                        leido=False,
+                        id_publicacion=p_id,
+                        id_referencia=None
+                    )
+                    db.session.add(nueva_noti)
+
+                db.session.commit()
+                print(f"ÉXITO: {len(archivos_procesados)} publicaciones archivadas y usuarios notificados.")
+            
+            else:
+                # Si no hay nada que archivar, hacemos commit igual para cerrar la transacción limpia
+                db.session.commit()
+                print("Sin cambios: No hay publicaciones antiguas pendientes.")
+                
+        except Exception as e:
+            print(f"ERROR CRÍTICO en tarea programada: {e}")
+            db.session.rollback() # Deshace todo si algo falla
+
+            
 if __name__ == '__main__':
+    scheduler.init_app(app)
+    scheduler.start()
+    scheduler.add_job(
+        id='archivar_job', 
+        func=tarea_archivar_publicaciones, 
+        trigger='cron', 
+        hour=3, 
+        minute=0
+    )
+    
     app.run(host='0.0.0.0', port=5000, debug=True)
