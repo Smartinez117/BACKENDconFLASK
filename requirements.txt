@@ -96,6 +96,7 @@ supabase-auth==2.20.0
 supabase-functions==2.20.0
 tomlkit==0.13.3
 typing-inspection==0.4.1
+typing_extensions==4.15.0
 typing_extensions==4.13.2
 tzdata==2025.3
 tzlocal==5.3.1
